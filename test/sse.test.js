@@ -1,5 +1,5 @@
 var SSE = require('../')
-  , expect = require('expect')
+  , expect = require('expect.js')
   , http = require('http')
   , url = require('url')
   , port = 20000
