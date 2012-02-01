@@ -309,5 +309,50 @@ describe('SSE', function() {
         });
       });
     });
+
+    describe('Opera support', function() {
+      it('uses legacy mode for <v10', function(done) {
+        var server = listen(++port, function() {
+          var sse = new SSE(server);
+          sse.on('connection', function(client) {
+            client.send('foo\nbar');
+            client.close();
+          });
+          request('http://localhost:' + port + '/sse', function(res) {
+            var streamData = '';
+            res.on('data', function(data) {
+              streamData += data.toString('utf8');
+            });
+            res.on('end', function() {
+              streamData = stripComments(streamData);
+              expect(streamData).to.equal('Event: data\ndata: foo\ndata: bar\n\n');
+              done();
+            });
+          }, { 'user-agent': 'Opera/9.80' });
+        });
+      });
+
+      it('uses normal mode for >=v10', function(done) {
+        var server = listen(++port, function() {
+          var sse = new SSE(server);
+          sse.on('connection', function(client) {
+            client.send('foo\nbar');
+            client.close();
+          });
+          request('http://localhost:' + port + '/sse', function(res) {
+            var streamData = '';
+            res.on('data', function(data) {
+              streamData += data.toString('utf8');
+            });
+            res.on('end', function() {
+              streamData = stripComments(streamData);
+              expect(streamData).to.equal('data:foo\ndata:bar\n\n');
+              done();
+            });
+          }, { 'user-agent': 'Opera/10.00' });
+        });
+      });
+    });
+
   });
 });
