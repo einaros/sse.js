@@ -30,6 +30,7 @@ server.listen(8080, '127.0.0.1', function() {
 ```
 
 Client code for the above server:
+
 ```js
 var es = new EventSource("/sse");
 es.onmessage = function (event) {
