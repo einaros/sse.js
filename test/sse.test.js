@@ -155,68 +155,39 @@ describe('SSE', function() {
   
   describe('#send', function() {
     describe('with special characters in data', function() {
-      it('sends a message with CR over several data directives', function(done) {
-        var server = listen(++port, function() {
-          var sse = new SSE(server);
-          sse.on('connection', function(client) {
-            client.send('foo\rbar\rbaz');
-            client.close();
-          });
-          request('http://localhost:' + port + '/sse', function(res) {
-            var streamData = '';
-            res.on('data', function(data) {
-              streamData += data.toString('utf8');
-            });
-            res.on('end', function() {
-              streamData = stripComments(streamData);
-              expect(streamData).to.equal('data:foo\ndata:bar\ndata:baz\n\n');
-              done();
-            });
-          });
-        });
-      });
 
-      it('sends a message with LF over several data directives', function(done) {
-        var server = listen(++port, function() {
-          var sse = new SSE(server);
-          sse.on('connection', function(client) {
-            client.send('foo\nbar\nbaz');
-            client.close();
-          });
-          request('http://localhost:' + port + '/sse', function(res) {
-            var streamData = '';
-            res.on('data', function(data) {
-              streamData += data.toString('utf8');
-            });
-            res.on('end', function() {
-              streamData = stripComments(streamData);
-              expect(streamData).to.equal('data:foo\ndata:bar\ndata:baz\n\n');
-              done();
-            });
-          });
-        });
-      });
+      var newLineCharacters = {
+          CR: '\r'
+        , LF: '\n'
+        , CRLF: '\r\n'
+      };
 
-      it('sends a message with CRLF over several data directives', function(done) {
-        var server = listen(++port, function() {
-          var sse = new SSE(server);
-          sse.on('connection', function(client) {
-            client.send('foo\r\nbar\r\nbaz');
-            client.close();
-          });
-          request('http://localhost:' + port + '/sse', function(res) {
-            var streamData = '';
-            res.on('data', function(data) {
-              streamData += data.toString('utf8');
+      for (var newLineCode in newLineCharacters) {
+        if (!newLineCharacters.hasOwnProperty(newLineCode)) continue;
+
+        (function(newLineCode, newLineCharacter) {
+          it('sends a message with ' + newLineCode + ' over several data directives', function(done) {
+            var server = listen(++port, function() {
+              var sse = new SSE(server);
+              sse.on('connection', function(client) {
+                client.send(['foo', 'bar', 'baz'].join(newLineCharacter));
+                client.close();
+              });
+              request('http://localhost:' + port + '/sse', function(res) {
+                var streamData = '';
+                res.on('data', function(data) {
+                  streamData += data.toString('utf8');
+                });
+                res.on('end', function() {
+                  streamData = stripComments(streamData);
+                  expect(streamData).to.equal('data:foo\ndata:bar\ndata:baz\n\n');
+                  done();
+                });
+              });
             });
-            res.on('end', function() {
-              streamData = stripComments(streamData);
-              expect(streamData).to.equal('data:foo\ndata:bar\ndata:baz\n\n');
-              done();
-            });
           });
-        });
-      });
+        })(newLineCode, newLineCharacters[newLineCode]);
+      }
 
       it('sends a message with (nonsensical) LFCR over several data directives', function(done) {
         var server = listen(++port, function() {
