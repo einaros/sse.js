@@ -12,7 +12,9 @@
   "scripts": {
     "test": "node_modules/.bin/mocha"
   },
-  "dependencies": {},
+  "dependencies": {
+    "options": "latest"
+  },
   "devDependencies": {
     "mocha": "latest",
     "expect.js": "latest"
