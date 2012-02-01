@@ -13,7 +13,7 @@ The spec can be found at [here](http://dev.w3.org/html5/eventsource/).
 ### Basic server ###
 
 ```js
-var SSE = require('./sse.js')
+var SSE = require('sse')
   , http = require('http');
 
 var server = http.createServer(function(req, res) {
