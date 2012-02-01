@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "options": "latest"
-  },git
+  },
   "devDependencies": {
     "mocha": "latest",
     "expect.js": "latest"
