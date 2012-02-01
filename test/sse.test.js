@@ -14,13 +14,14 @@ function listen(port, cb) {
   return server;
 }
 
-function request(reqUrl, cb) {
+function request(reqUrl, cb, headers) {
   var uri = url.parse(reqUrl);
   var options = {
     port: uri.port,
     host: uri.hostname,
     path: uri.path
   };
+  if (headers) options.headers = headers;
   var req = http.request(options, cb);
   req.end();
   return req;
@@ -92,6 +93,26 @@ describe('SSE', function() {
           expect(res.headers['content-type']).to.equal('text/event-stream');
           done();
         });
+      });
+    });
+
+    it('has content-type set to text/x-dom-event-stream for Opera <v10', function(done) {
+      var server = listen(++port, function() {
+        var sse = new SSE(server);
+        request('http://localhost:' + port + '/sse', function(res) {
+          expect(res.headers['content-type']).to.equal('text/x-dom-event-stream');
+          done();
+        }, { 'user-agent': 'Opera/9.80' });
+      });
+    });
+
+    it('has content-type set to text/event-stream for Opera =>v10', function(done) {
+      var server = listen(++port, function() {
+        var sse = new SSE(server);
+        request('http://localhost:' + port + '/sse', function(res) {
+          expect(res.headers['content-type']).to.equal('text/event-stream');
+          done();
+        }, { 'user-agent': 'Opera/10' });
       });
     });
   });
