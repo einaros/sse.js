@@ -1,4 +1,4 @@
-var SSE = require('../')
+var SSE = require('../../')
   , express = require('express')
   , app = express.createServer();
 
