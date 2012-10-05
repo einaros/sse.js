@@ -118,6 +118,24 @@ describe('SSE', function() {
   });
 
   describe('client', function() {
+    it('is exported', function(done) {
+      expect(SSE.Client);
+
+      var server = listen(++port, function() {
+        var sse = new SSE(server);
+        sse.on('connection', function(client) {
+          expect(client instanceof SSE.Client);
+          client.on('close', function() {
+            server.close();
+            done();
+          });
+        });
+      });
+      request('http://localhost:' + port + '/sse', function(res) {
+        res.socket.end();
+      });
+    });
+
     describe('emits', function() {
       it('a "close" event when a client connects', function(done) {
         var server = listen(++port, function() {
