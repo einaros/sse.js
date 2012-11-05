@@ -188,7 +188,7 @@ describe('SSE', function() {
             });
             res.on('end', function() {
               streamData = stripComments(streamData);
-              expect(streamData).to.equal('data:foo\ndata:bar\ndata:baz\n\n');
+              expect(streamData).to.equal('data: foo\ndata: bar\ndata: baz\n\n');
               done();
             });
           });
@@ -209,7 +209,7 @@ describe('SSE', function() {
             });
             res.on('end', function() {
               streamData = stripComments(streamData);
-              expect(streamData).to.equal('data:foo\ndata:bar\ndata:baz\n\n');
+              expect(streamData).to.equal('data: foo\ndata: bar\ndata: baz\n\n');
               done();
             });
           });
@@ -230,7 +230,7 @@ describe('SSE', function() {
             });
             res.on('end', function() {
               streamData = stripComments(streamData);
-              expect(streamData).to.equal('data:foo\ndata:\ndata:bar\ndata:\ndata:baz\ndata:\ndata:\n\n');
+              expect(streamData).to.equal('data: foo\ndata: \ndata: bar\ndata: \ndata: baz\ndata: \ndata: \n\n');
               done();
             });
           });
@@ -254,7 +254,7 @@ describe('SSE', function() {
             });
             res.on('end', function() {
               streamData = stripComments(streamData);
-              expect(streamData).to.equal('data:foobar\n\n');
+              expect(streamData).to.equal('data: foobar\n\n');
               done();
             });
           });
@@ -277,7 +277,7 @@ describe('SSE', function() {
             });
             res.on('end', function() {
               streamData = stripComments(streamData);
-              expect(streamData).to.equal('event:foobar\ndata:somedata\n\n');
+              expect(streamData).to.equal('event: foobar\ndata: somedata\n\n');
               done();
             });
           });
@@ -300,7 +300,7 @@ describe('SSE', function() {
             });
             res.on('end', function() {
               streamData = stripComments(streamData);
-              expect(streamData).to.equal('event:foobar\nid:100\ndata:somedata\n\n');
+              expect(streamData).to.equal('event: foobar\nid: 100\ndata: somedata\n\n');
               done();
             });
           });
