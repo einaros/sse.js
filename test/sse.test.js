@@ -167,7 +167,7 @@ describe('SSE', function() {
             });
             res.on('end', function() {
               streamData = stripComments(streamData);
-              expect(streamData).to.equal('data:foo\ndata:bar\ndata:baz\n\n');
+              expect(streamData).to.equal('data: foo\ndata: bar\ndata: baz\n\n');
               done();
             });
           });
