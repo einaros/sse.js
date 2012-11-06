@@ -260,6 +260,71 @@ describe('SSE', function() {
 
     });
 
+    describe('first function attribute to send method as object', function() {
+      it('passes a object to the first attribute, all other attributes is ignored', function(done) {
+        var server = listen(++port, function() {
+          var sse = new SSE(server);
+          sse.on('connection', function(client) {
+            client.send({data:'foo'}, 'bar');
+            client.close();
+          });
+          request('http://localhost:' + port + '/sse', function(res) {
+            var streamData = '';
+            res.on('data', function(data) {
+              streamData += data.toString('utf8');
+            });
+            res.on('end', function() {
+              streamData = stripComments(streamData);
+              expect(streamData).to.equal('data: foo\n\n');
+              done();
+            });
+          });
+        });
+      });
+
+      it('sends a message with only data value', function(done) {
+        var server = listen(++port, function() {
+          var sse = new SSE(server);
+          sse.on('connection', function(client) {
+            client.send({data:'foo'});
+            client.close();
+          });
+          request('http://localhost:' + port + '/sse', function(res) {
+            var streamData = '';
+            res.on('data', function(data) {
+              streamData += data.toString('utf8');
+            });
+            res.on('end', function() {
+              streamData = stripComments(streamData);
+              expect(streamData).to.equal('data: foo\n\n');
+              done();
+            });
+          });
+        });
+      });
+
+      it('sends a message with all object values set', function(done) {
+        var server = listen(++port, function() {
+          var sse = new SSE(server);
+          sse.on('connection', function(client) {
+            client.send({data:'foo',event:'bar',id:1,retry:6000});
+            client.close();
+          });
+          request('http://localhost:' + port + '/sse', function(res) {
+            var streamData = '';
+            res.on('data', function(data) {
+              streamData += data.toString('utf8');
+            });
+            res.on('end', function() {
+              streamData = stripComments(streamData);
+              expect(streamData).to.equal('event: bar\nretry: 6000\nid: 1\ndata: foo\n\n');
+              done();
+            });
+          });
+        });
+      });
+    });
+
     describe('without an event name or id', function() {
       it('sends a message event', function(done) {
         var server = listen(++port, function() {
