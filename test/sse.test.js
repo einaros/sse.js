@@ -237,6 +237,27 @@ describe('SSE', function() {
         });
       });
 
+      it('sends a message witch goes over only one line', function(done) {
+        var server = listen(++port, function() {
+          var sse = new SSE(server);
+          sse.on('connection', function(client) {
+            client.send('foo');
+            client.close();
+          });
+          request('http://localhost:' + port + '/sse', function(res) {
+            var streamData = '';
+            res.on('data', function(data) {
+              streamData += data.toString('utf8');
+            });
+            res.on('end', function() {
+              streamData = stripComments(streamData);
+              expect(streamData).to.equal('data: foo\n\n');
+              done();
+            });
+          });
+        });
+      });
+
     });
 
     describe('without an event name or id', function() {
