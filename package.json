@@ -1,7 +1,14 @@
 {
   "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
   "name": "sse",
-  "version": "0.0.5",
+  "version": "0.0.6",
+  "keywords": [
+    "real-time",
+    "server-sent-events",
+    "html5",
+    "sse",
+    "messaging" 
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/einaros/sse.js.git"
