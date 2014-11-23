@@ -19,8 +19,20 @@
 
       var es = new EventSource("/sse");
       es.onmessage = function (event) {
+        console.log("onmessage", event)
         updateStats(JSON.parse(event.data));
       };
+
+      es.onopen = function(e) {
+        console.log("onopen", e)
+      }
+
+      es.onerror = function(e) {
+        console.log("onerror", e)
+        es.close();
+      }
+
+      console.log("what")
     </script>
   </head>
   <body>

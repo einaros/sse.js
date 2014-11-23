@@ -10,7 +10,7 @@
     "node": "~0.6.8"
   },
   "dependencies": {
-    "express": "latest"
+    "express": "^4.10.2"
   },
   "devDependencies": {},
   "optionalDependencies": {}
