@@ -1,19 +1,30 @@
-var SSE = require('../../')
-  , express = require('express')
-  , app = express.createServer();
+var http          = require('http'),
+express           = require('express'),
+sse               = require('../../'),
+app               = express(),
+port              = process.argv[2] ? process.argv[2] : 8080,
+docRoot           = './public';
 
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(docRoot));
 
-var sse = new SSE(app);
-sse.on('connection', function(client) {
+var httpServer = http.createServer(app);
+var sseServer = new sse(httpServer);
+
+sseServer.on('connection', function(client) {
+
   var id = setInterval(function() {
     client.send(JSON.stringify(process.memoryUsage()));
   }, 100);
+
   console.log('started client interval');
+
   client.on('close', function() {
     console.log('stopping client interval');
     clearInterval(id);
   })
+
 });
 
-app.listen(8080);
+httpServer.listen(port, function() {
+  console.log("http://localhost:%d is listening...", port)
+});

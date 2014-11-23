@@ -38,6 +38,16 @@ es.onmessage = function (event) {
 };
 ```
 
+### Example ###
+
+```sh
+cd example/serverstats
+npm install
+node server.js
+```
+
+Then open [localhost:8080](http://localhost:8080) in your browser.
+
 ## License ##
 
 (The MIT License)
