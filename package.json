@@ -7,17 +7,14 @@
     "server-sent-events",
     "html5",
     "sse",
-    "messaging" 
+    "messaging"
   ],
   "repository": {
     "type": "git",
     "url": "git://github.com/einaros/sse.js.git"
   },
-  "engines": {
-    "node": ">=0.4.0"
-  },
   "scripts": {
-    "test": "node_modules/.bin/mocha"
+    "test": "mocha"
   },
   "dependencies": {
     "options": "latest"
@@ -25,6 +22,5 @@
   "devDependencies": {
     "mocha": "latest",
     "expect.js": "latest"
-  },
-  "optionalDependencies": {}
+  }
 }
