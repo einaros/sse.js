@@ -20,11 +20,11 @@
     "test": "node_modules/.bin/mocha"
   },
   "dependencies": {
-    "options": "latest"
+    "options": "0.0.6"
   },
   "devDependencies": {
-    "mocha": "latest",
-    "expect.js": "latest"
+    "mocha": "^3.0.2",
+    "expect.js": "^0.3.1"
   },
   "optionalDependencies": {}
 }
