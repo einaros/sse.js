@@ -2,7 +2,7 @@
 
 The HTML5 Server-Sent events specification is introduced "to enable servers to push data to Web pages over HTTP or using dedicated server-push protocols".
 
-The spec can be found [here](http://dev.w3.org/html5/eventsource/).
+The spec can be found [here](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events).
 
 ## Usage ##
 
