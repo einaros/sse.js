@@ -1,7 +1,7 @@
 {
   "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
   "name": "sse",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "keywords": [
     "real-time",
     "server-sent-events",
