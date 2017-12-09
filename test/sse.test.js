@@ -153,14 +153,14 @@ describe('SSE', function() {
           request('http://localhost:' + port + '/sse', function(res) {
             res.on('end', function() {
               server.close();
-              done();              
+              done();
             });
           });
-        });        
+        });
       });
     });
   });
-  
+
   describe('#send', function() {
     describe('with special characters in data', function() {
       it('sends a message with CR over several data directives', function(done) {

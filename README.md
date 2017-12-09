@@ -38,6 +38,13 @@ es.onmessage = function (event) {
 };
 ```
 
+## Options
+
+create SSE server by `new SSE(httpServer, options)`
+
+* path - default `/sse`
+* verifyRequest - default `null`
+
 ## License ##
 
 (The MIT License)
