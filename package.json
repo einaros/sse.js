@@ -1,13 +1,13 @@
 {
   "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
   "name": "sse",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "keywords": [
     "real-time",
     "server-sent-events",
     "html5",
     "sse",
-    "messaging" 
+    "messaging"
   ],
   "repository": {
     "type": "git",
@@ -20,11 +20,11 @@
     "test": "node_modules/.bin/mocha"
   },
   "dependencies": {
-    "options": "latest"
+    "options": "0.0.6"
   },
   "devDependencies": {
-    "mocha": "latest",
-    "expect.js": "latest"
+    "mocha": "4.0.1",
+    "expect.js": "0.3.1"
   },
   "optionalDependencies": {}
 }
