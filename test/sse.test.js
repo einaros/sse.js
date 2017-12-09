@@ -55,6 +55,17 @@ describe('SSE', function() {
       });
     });
 
+    it('can be configured to listen on wildcard paths', function(done) {
+      var server = listen(++port, function() {
+        var sse = new SSE(server, { path: '/something/*' });
+        sse.on('connection', function(client) {
+          server.close();
+          done();
+        });
+        request('http://localhost:' + port + '/something/else', function(res) {});
+      });
+    });
+
     it('can be configured to use a custom request verification method to block a request', function(done) {
       var server = listen(++port, function() {
         var sse = new SSE(server, { verifyRequest: function(req) { return false; } });
