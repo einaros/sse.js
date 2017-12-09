@@ -95,6 +95,16 @@ describe('SSE', function() {
         });
       });
     });
+
+    it('has cache-control set to no-cache, no-transform', function(done) {
+      var server = listen(++port, function() {
+        var sse = new SSE(server);
+        request('http://localhost:' + port + '/sse', function(res) {
+          expect(res.headers['cache-control']).to.equal('no-cache, no-transform');
+          done();
+        });
+      });
+    });
   });
 
   describe('client', function() {
