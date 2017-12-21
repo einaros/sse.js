@@ -18,6 +18,7 @@
     "node": ">=6.0.0"
   },
   "scripts": {
+    "prettier": "prettier --single-quote --write \"lib/**/*.js\"",
     "test": "node_modules/.bin/mocha",
     "test-coverage": "nyc mocha --timeout=3000 && nyc report --reporter=html"
   },
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "mocha": "^4.0.1",
-    "nyc": "^11.3.0"
+    "nyc": "^11.3.0",
+    "prettier": "1.9.2"
   }
 }
