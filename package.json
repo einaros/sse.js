@@ -1,7 +1,8 @@
 {
-  "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
   "name": "sse",
   "version": "0.0.8",
+  "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
+  "license": "MIT",
   "keywords": [
     "real-time",
     "server-sent-events",
@@ -14,17 +15,19 @@
     "url": "git://github.com/einaros/sse.js.git"
   },
   "engines": {
-    "node": ">=0.4.0"
+    "node": ">=6.0.0"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha"
+    "test": "node_modules/.bin/mocha",
+    "test-coverage": "nyc mocha --timeout=3000 && nyc report --reporter=html"
   },
   "dependencies": {
-    "options": "0.0.6"
+    "async": "^2.6.0",
+    "chai": "^4.1.2",
+    "uuid": "^3.1.0"
   },
   "devDependencies": {
-    "mocha": "4.0.1",
-    "expect.js": "0.3.1"
-  },
-  "optionalDependencies": {}
+    "mocha": "^4.0.1",
+    "nyc": "^11.3.0"
+  }
 }

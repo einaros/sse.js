@@ -1,1 +1,1 @@
-module.exports = require('./lib/sse');
+exports.SSEService = require('./lib/sse-service');

@@ -1,7 +1,5 @@
 .idea/
+.nyc_output/
+coverage/
 npm-debug.log
 node_modules
-.*.swp
-.lock-*
-build
-package-lock.json

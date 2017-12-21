@@ -1,6 +1,5 @@
 .idea/
+.nyc_output/
+coverage/
+test/
 npm-debug.log
-node_modules
-.*.swp
-.lock-*
-build
