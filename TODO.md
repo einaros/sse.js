@@ -6,5 +6,4 @@
 
 ## Technical
 
-  - Add linter (prettier)
   - Add d.ts files
