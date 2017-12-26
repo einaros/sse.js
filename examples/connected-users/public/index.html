@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Users</title>
+  <style>
+    body {
+      background-color: #f1f1f1;
+    }
+
+    .in-sync {
+      color: green;
+    }
+
+    .out-of-sync {
+      font-weight: bold;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+<ul>
+  <li>
+    <strong>Connection status:</strong> <span id="connectionStatus" class="out-of-sync">disconnected</span>
+  </li>
+  <li>
+    <strong>Nr of connected users:</strong> <span id="nrUsers" class="out-of-sync">0</span>
+  </li>
+</ul>
+
+<div>
+  To add mose users, open new tabs on the same URL. Your browser may limit the number of open SSE connections to 6.<br/><br/>
+  Shutting the server down will change the connection status. If the server is started again, the browser should
+  re-establish SSE connections automatically.
+</div>
+<script src="client.js"></script>
+</body>
+</html>
