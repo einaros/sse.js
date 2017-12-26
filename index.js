@@ -1,1 +1,0 @@
-exports.SSEService = require('./lib/sse-service');

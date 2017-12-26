@@ -1,0 +1,22 @@
+{
+  "name": "sse",
+  "version": "0.0.8",
+  "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
+  "license": "MIT",
+  "keywords": [
+    "real-time",
+    "server-sent-events",
+    "sse"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/einaros/sse.js.git"
+  },
+  "engines": {
+    "node": ">=6.0.0"
+  },
+  "dependencies": {
+    "async": "^2.6.0",
+    "uuid": "^3.1.0"
+  }
+}
