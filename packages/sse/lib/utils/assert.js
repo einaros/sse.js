@@ -16,38 +16,39 @@ module.exports = {
    * @param {string} [msg]
    */
   instanceOf(obj, ConstructorFn, msg = '') {
-    if (obj instanceof ConstructorFn)
-      return;
-    throwErr(msg, `Expected object to be instance of ${typeof ConstructorFn === 'function' ? ConstructorFn.name : null}`);
+    if (obj instanceof ConstructorFn) return;
+    throwErr(
+      msg,
+      `Expected object to be instance of ${
+        typeof ConstructorFn === 'function' ? ConstructorFn.name : null
+      }`
+    );
   },
-  
+
   /**
    * @param {Function} fn
    * @param {String} [msg]
    */
   isFunction(fn, msg = '') {
-    if (typeof fn === 'function')
-      return;
+    if (typeof fn === 'function') return;
     throwErr(msg, `Expected fn to be a function`);
   },
-  
+
   /**
    * @param {Object} obj
    * @param {string} [msg]
    */
   isObject(obj, msg = '') {
-    if (obj !== null && typeof obj === 'object')
-      return;
+    if (obj !== null && typeof obj === 'object') return;
     throwErr(msg, `Expected obj to be an object`);
   },
-  
+
   /**
    * @param {boolean} predicate
    * @param {string} [msg]
    */
   isTrue(predicate, msg) {
-    if (predicate === true)
-      return;
+    if (predicate === true) return;
     throwErr(msg, `Expected predicate to be true`);
   }
 };
