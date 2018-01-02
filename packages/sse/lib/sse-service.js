@@ -77,11 +77,11 @@ class SSEService extends EventEmitter {
         res.writeHead(200, SSE_HTTP_RESPONSE_HEADERS);
 
         res.on('close', () =>
-          this.unRegister(sseId, () =>
+          this.unregister(sseId, () =>
             this.emit('clientClose', sseId, res.locals)
           )
         );
-        res.on('finish', () => this.unRegister(sseId));
+        res.on('finish', () => this.unregister(sseId));
       } catch (e) {
         // Events must be emitted asynchronously
         process.nextTick(() => {
@@ -108,7 +108,7 @@ class SSEService extends EventEmitter {
     }
   }
 
-  unRegister(target, cb) {
+  unregister(target, cb) {
     const { activeSSEConnections } = internal(this);
 
     const fn = (res, _cb) => {
@@ -135,7 +135,7 @@ class SSEService extends EventEmitter {
     internal(this).blockIncomingConnections = true;
     if (internal(this).heartbeatIntervalId)
       clearInterval(internal(this).heartbeatIntervalId);
-    this.unRegister(null, cb);
+    this.unregister(null, cb);
   }
 
   /**

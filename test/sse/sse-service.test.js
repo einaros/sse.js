@@ -286,7 +286,7 @@ describe('SSEService', () => {
       sseService.on('connection', sseId => {
         try {
           assert.equal(sseId.isConnectionActive, true);
-          sseService.unRegister(sseId, err => {
+          sseService.unregister(sseId, err => {
             if (err) return done(err);
             try {
               assert.equal(sseId.isConnectionActive, false);

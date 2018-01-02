@@ -60,7 +60,7 @@ The `sseService` allows to send data with fine-grained targeting on the open SSE
      * [sseService.register(req, res)](#sseserviceregisterreq-res)
      * [sseService.resetLastEventId([cb])](#sseserviceresetlasteventidcb)
      * [sseService.send(opts[, target[, cb]])](#sseservicesendopts-target-cb)
-     * [sseService.unRegister([target[, cb]])](#sseserviceunregistertarget-cb)
+     * [sseService.unregister([target[, cb]])](#sseserviceunregistertarget-cb)
 
 
 ## Class `sse.SSEService`
@@ -156,7 +156,7 @@ Resets the Last-Event-ID to the client
   
 General-purpose method for sending information to the client. Convenience methods may be added in the future to cover most common use cases.  
 
-### `sseService.unRegister([target[, cb]])`
+### `sseService.unregister([target[, cb]])`
 
   - `target {SSEID | function}` - The target connection(s). Defaults to `null` (targets all connections)
   - `cb {function}` (optional) - Callback function 
@@ -167,7 +167,7 @@ Once a connection has been closed, it can't be sent down any more data.
 
 Clients that close the connection on their own will be automatically unregistered from the service.
 
-> **Note** Due to the optional nature of both the `target` and `cb` arguments, if `sseService.unRegister` is called
+> **Note** Due to the optional nature of both the `target` and `cb` arguments, if `sseService.unregister` is called
 > with only one function as its argument, this function will be considered as the callback. This behaviour will be applied to all methods having a `target` argument.
 
 # Support
