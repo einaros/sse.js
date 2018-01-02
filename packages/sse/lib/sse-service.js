@@ -40,7 +40,7 @@ class SSEService extends EventEmitter {
     return internal(this).SSEID;
   }
 
-  get nbActiveConnections() {
+  get numActiveConnections() {
     return internal(this).activeSSEConnections.size;
   }
 

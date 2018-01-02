@@ -78,13 +78,13 @@ describe('SSEService', () => {
     it('should expose the number of active connections', _done => {
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
       try {
-        assert.equal(sseService.nbActiveConnections, 0);
+        assert.equal(sseService.numActiveConnections, 0);
       } catch (e) {
         done(e);
       }
       sseService.on('connection', () => {
         try {
-          assert.equal(sseService.nbActiveConnections, 1);
+          assert.equal(sseService.numActiveConnections, 1);
           done();
         } catch (e) {
           done(e);
@@ -171,7 +171,7 @@ describe('SSEService', () => {
             try {
               assert.equal(sseId, sseIdFromConnectionEvent);
               assert.isFalse(sseId.isConnectionActive);
-              assert.equal(sseService.nbActiveConnections, 0);
+              assert.equal(sseService.numActiveConnections, 0);
               assert.isObject(locals.sse);
               done();
             } catch (e) {
@@ -182,7 +182,7 @@ describe('SSEService', () => {
         
         simulateSSEConnection(sseServer, (err, requestId) => {
           try {
-            assert.equal(sseService.nbActiveConnections, 1);
+            assert.equal(sseService.numActiveConnections, 1);
           } catch (e) {
             done(e);
           }

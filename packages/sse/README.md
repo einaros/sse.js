@@ -57,6 +57,7 @@ The `sseService` allows to send data with fine-grained targeting on the open SSE
      * [Event: 'connection'](#event-connection)
      * [Event: 'error'](#event-error)
      * [sseService.close([cb])](#sseserviceclosecb)
+     * [sseService.numActiveConnections](#sseservicenumactiveconnections)
      * [sseService.register(req, res)](#sseserviceregisterreq-res)
      * [sseService.resetLastEventId([cb])](#sseserviceresetlasteventidcb)
      * [sseService.send(opts[, target[, cb]])](#sseservicesendopts-target-cb)
@@ -118,6 +119,10 @@ Event emitted when an error occurred during SSE connection's establishment.
 
 Closes the service by terminating all open connections, and frees up resources. The service won't accept any more connection. 
 Further incoming connections will be terminated immediately with a `204` HTTP status code, preventing clients from attempting to reconnect.
+
+### `sseService.numActiveConnections`
+
+Number of active SSE connections managed by this service (read-only).
 
 ### `sseService.register(req, res)`
 
