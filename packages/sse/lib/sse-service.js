@@ -5,7 +5,7 @@ const uuidv4 = require('uuid/v4');
 const async = require('async');
 const assert = require('./utils/assert');
 const { maybeFn } = require('./utils/maybe');
-const { SSEIDClassFactory } = require('./sse-id');
+const { createSSEIDClass } = require('./sse-id');
 
 const internal = require('./utils/weak-map').getInternal();
 
@@ -22,7 +22,7 @@ class SSEService extends EventEmitter {
   constructor() {
     super();
     internal(this).secureId = uuidv4();
-    internal(this).SSEID = SSEIDClassFactory.create(this, internal);
+    internal(this).SSEID = createSSEIDClass(this, internal);
     internal(this).activeSSEConnections = new Map();
     internal(this).blockIncomingConnections = false;
     internal(this).applyForTarget = applyForTarget.bind(this);
