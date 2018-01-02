@@ -6,6 +6,7 @@
     "url": "git://github.com/einaros/sse.js.git"
   },
   "scripts": {
+    "lint": "npm run prettier",
     "prettier": "prettier --single-quote --write \"packages/**/*.js\"",
     "test": "node_modules/.bin/mocha test/**/*.test.js",
     "test-coverage": "nyc mocha --timeout=3000 test/**/*.test.js && nyc report --reporter=html"

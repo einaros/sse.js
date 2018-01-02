@@ -72,7 +72,7 @@ class SSEService extends EventEmitter {
     if (getSSEIdFromResponse(res, SSEID) !== null) {
       return;
     }
-    
+
     let sseId = null;
     try {
       sseId = new SSEID(secureId);
