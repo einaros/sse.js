@@ -69,43 +69,45 @@ class SSEService extends EventEmitter {
     const { activeSSEConnections, SSEID, secureId } = internal(this);
 
     // Not registering a connection that has already been registered
-    if (getSSEIdFromResponse(res, SSEID) === null) {
-      let sseId = null;
-      try {
-        sseId = new SSEID(secureId);
-        writeSSELocalsInResponse(req, res, sseId);
-        res.writeHead(200, SSE_HTTP_RESPONSE_HEADERS);
+    if (getSSEIdFromResponse(res, SSEID) !== null) {
+      return;
+    }
+    
+    let sseId = null;
+    try {
+      sseId = new SSEID(secureId);
+      writeSSELocalsInResponse(req, res, sseId);
+      res.writeHead(200, SSE_HTTP_RESPONSE_HEADERS);
 
-        res.on('close', () =>
-          this.unregister(sseId, () =>
-            this.emit('clientClose', sseId, res.locals)
-          )
+      res.on('close', () =>
+        this.unregister(sseId, () =>
+          this.emit('clientClose', sseId, res.locals)
+        )
+      );
+      res.on('finish', () => this.unregister(sseId));
+    } catch (e) {
+      // Events must be emitted asynchronously
+      process.nextTick(() => {
+        this.emit('error', wrapError(e, 'Could not register connection'));
+      });
+      res.writeHead(500);
+      res.end();
+      return;
+    }
+
+    // Sending a heartbeat to flush data.
+    // Cannot call this.send() because connection is not registered to the service yet.
+    res.write(`:${HEARTBEAT_MESSAGE}\n\n`, err => {
+      if (err) {
+        this.emit(
+          'error',
+          wrapError(err, 'Could not send initial heartbeat payload')
         );
-        res.on('finish', () => this.unregister(sseId));
-      } catch (e) {
-        // Events must be emitted asynchronously
-        process.nextTick(() => {
-          this.emit('error', wrapError(e, 'Could not register connection'));
-        });
-        res.writeHead(500);
-        res.end();
         return;
       }
-
-      // Sending a heartbeat to flush data.
-      // Cannot call this.send() because connection is not registered to the service yet.
-      res.write(`:${HEARTBEAT_MESSAGE}\n\n`, err => {
-        if (err) {
-          this.emit(
-            'error',
-            wrapError(err, 'Could not send initial heartbeat payload')
-          );
-          return;
-        }
-        activeSSEConnections.set(sseId, res);
-        this.emit('connection', sseId, res.locals);
-      });
-    }
+      activeSSEConnections.set(sseId, res);
+      this.emit('connection', sseId, res.locals);
+    });
   }
 
   unregister(target, cb) {
