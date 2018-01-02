@@ -4,37 +4,41 @@ An unopinionated, minimalist, [standard](https://html.spec.whatwg.org/multipage/
 
 **Node.js**
 
-    const http = require('http');
-    const { SSEService } = require('sse');
-    
-    const sseService = new SSEService()
-    http.createServer((request, response) => {
-      if(request.method === 'GET' && request.url === '/sse')
-        sseService.register(request, response);
-    }).listen(8080);
-    
-    sseService.on('connection', sseId => {
-      sseService.send('hello', sseId); // sends data to a single response
-      sseService.send({event:'user-connected'}); // broadcasts data to all responses
-    });
+```javascript
+const http = require('http');
+const { SSEService } = require('sse');
+
+const sseService = new SSEService();
+http.createServer((request, response) => {
+  if(request.method === 'GET' && request.url === '/sse')
+    sseService.register(request, response);
+}).listen(8080);
+
+sseService.on('connection', sseId => {
+  sseService.send('hello', sseId); // sends data to a single response
+  sseService.send({event:'user-connected'}); // broadcasts data to all responses
+});
+```
 
 **Express.js**
 
-    const http = require('http');
-    const express = require('express');
-    const { SSEService } = require('sse');
-    
-    const app = express();
-    const sseService = new SSEService();
+```javascript
+const http = require('http');
+const express = require('express');
+const { SSEService } = require('sse');
 
-    app.get('/sse', sseService.register);
- 
-    http.createServer(app).listen(8080);
+const app = express();
+const sseService = new SSEService();
 
-    sseService.on('connection', sseId => {
-      sseService.send('hello', sseId); // sends data to a single response
-      sseService.send({event:'user-connected'}); // broadcasts data to all responses
-    })
+app.get('/sse', sseService.register);
+
+http.createServer(app).listen(8080);
+
+sseService.on('connection', sseId => {
+  sseService.send('hello', sseId); // sends data to a single response
+  sseService.send({event:'user-connected'}); // broadcasts data to all responses
+})
+```
 
 # Overview 
 
