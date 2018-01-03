@@ -20,14 +20,15 @@ const SSE_HTTP_RESPONSE_HEADERS = {
 class SSEService extends EventEmitter {
   constructor() {
     super();
-    internal(this).secureId = uuidv4();
-    internal(this).SSEID = createSSEIDClass(this, internal);
-    internal(this).activeSSEConnections = new Map();
-    internal(this).blockIncomingConnections = false;
-    internal(this).applyForTarget = applyForTarget.bind(this);
+    const internals = internal(this);
+    internals.secureId = uuidv4();
+    internals.SSEID = createSSEIDClass(this, internal);
+    internals.activeSSEConnections = new Map();
+    internals.blockIncomingConnections = false;
+    internals.applyForTarget = applyForTarget.bind(this);
 
     // Keeping connection alive by periodically sending comments (https://www.w3.org/TR/eventsource/#notes)
-    internal(this).heartbeatIntervalId = setInterval(() => {
+    internals.heartbeatIntervalId = setInterval(() => {
       this.send({ comment: '' });
     }, HEARTBEAT_INTERVAL * 1000).unref();
 
