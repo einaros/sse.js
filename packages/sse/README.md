@@ -51,7 +51,7 @@ The `sseService` allows to send data with fine-grained targeting on the open SSE
  * [Class sse.SSEService](#class-ssesseservice)
      * [new sse.SSEService()](#new-ssesseservice)
      * [Class: sseService.SSEID](#class-sseservicesseid)
-        * [sseId.isConnectionActive()](#sseidisconnectionactive)
+        * [sseId.isConnectionActive](#sseidisconnectionactive)
         * [sseId.sseService](#sseidsseservice)
      * [Event: 'clientClose'](#event-clientclose)
      * [Event: 'connection'](#event-connection)
@@ -76,11 +76,14 @@ While it is allowed to have multiple instances of an `SSEService` on the same se
 
 Identifier object that represents an SSE connection managed by the `sseService`. An `sseId` can only be created by the service. 
 
-#### `sseId.isConnectionActive()`
+#### `sseId.isConnectionActive`
 
-Returns `true` if this `sseId` represents an active SSE connection. 
+Boolean indicating if the connection is active.
 
-Returns `false` if the connection is closed and no longer managed by the service. A closed connection can no longer accept Server-Sent Events.
+ - `true` if this `sseId` represents an active SSE connection.
+ - `false` if the connection is closed and no longer managed by the service.
+
+A closed connection can no longer accept Server-Sent Events.
 
 #### `sseId.sseService`
 
