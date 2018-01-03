@@ -10,7 +10,6 @@ const { createSSEIDClass } = require('./sse-id');
 const internal = require('./utils/weak-map').getInternal();
 
 const HEARTBEAT_INTERVAL = 15;
-const HEARTBEAT_MESSAGE = 'heartbeat';
 const SSE_HTTP_RESPONSE_HEADERS = {
   'Content-Type': 'text/event-stream',
   Connection: 'keep-alive',
@@ -29,7 +28,7 @@ class SSEService extends EventEmitter {
 
     // Keeping connection alive by periodically sending comments (https://www.w3.org/TR/eventsource/#notes)
     internal(this).heartbeatIntervalId = setInterval(() => {
-      this.send({ comment: HEARTBEAT_MESSAGE });
+      this.send({ comment: '' });
     }, HEARTBEAT_INTERVAL * 1000).unref();
 
     // So `sseService.register` can be used as a standalone function (as an express middleware, for instance)
@@ -95,9 +94,9 @@ class SSEService extends EventEmitter {
       return;
     }
 
-    // Sending a heartbeat to flush data.
+    // Sending empty comment to flush data.
     // Cannot call this.send() because connection is not registered to the service yet.
-    res.write(`:${HEARTBEAT_MESSAGE}\n\n`, err => {
+    res.write(':\n\n', err => {
       if (err) {
         this.emit(
           'error',
@@ -158,11 +157,11 @@ class SSEService extends EventEmitter {
     else {
       const { data, event, id, retry, comment } = opts;
       msg =
-        (id ? `id:${id}\n` : '') +
-        (event ? `event:${event}\n` : '') +
-        (data ? `data:${JSON.stringify(data)}\n` : '') +
-        (retry ? `retry:${retry}\n` : '') +
-        (comment ? `:${comment}\n` : '') +
+        (isSet(id) ? `id:${id}\n` : '') +
+        (isSet(event) ? `event:${event}\n` : '') +
+        (isSet(data) ? `data:${JSON.stringify(data)}\n` : '') +
+        (isSet(retry) ? `retry:${retry}\n` : '') +
+        (isSet(comment) ? `:${comment}\n` : '') +
         '\n';
     }
 
@@ -272,6 +271,10 @@ function getSSEIdFromResponse(res, SSEID) {
   const sseId = res.locals && res.locals.sse && res.locals.sse.sseId;
   if (sseId instanceof SSEID) return sseId;
   return null;
+}
+
+function isSet(e) {
+  return e !== undefined && e !== null;
 }
 
 /**

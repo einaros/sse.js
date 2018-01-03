@@ -58,9 +58,9 @@ describe('SSEService', () => {
       });
     });
     
-    it('should initiate the connection with a heartbeat to prevent socket from hanging', _done => {
+    it('should initiate the connection with an empty comment to prevent socket from hanging', _done => {
       const {done} = setupSSEServiceForServer(sseServer, _done);
-      const timeoutId = setTimeout(() => done(new Error(`Expected :heartbeat comment as initial payload`)), 75).unref();
+      const timeoutId = setTimeout(() => done(new Error(`Expected empty comment as initial payload`)), 75).unref();
       simulateSSEConnection(sseServer, (err, requestId) => {
         if (err) return done(err);
         sseServer.getClientResponse(requestId).on('data', chunk => {

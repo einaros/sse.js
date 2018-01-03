@@ -135,7 +135,7 @@ Number of active SSE connections managed by this service (read-only).
 Sets up an SSE connection by doing the following :
 
   - sends appropriate HTTP headers to the response 
-  - maintains connection alive with the regular sending of heartbeats
+  - maintains connection alive with the regular sending of empty comments (called "heartbeats")
   - assigns an `sseId` to the response and extends the `res.locals` object with an `sse` property :
     - `res.locals.sse.sseId {object}` : the `sseId` assigned to the response
     - `res.locals.sse.lastEventId {string}` (optional) : the `Last-Event-ID` HTTP header specified in `req`, if any 

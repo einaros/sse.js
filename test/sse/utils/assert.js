@@ -32,5 +32,5 @@ exports.verifyServerSentEventFormat = function verifyServerSentEventFormat(event
 };
 
 exports.assertHeartbeat = function assertHeartbeat(chunk){
-  assert.equal(`${chunk}`, ':heartbeat\n\n');
+  assert.equal(`${chunk}`, ':\n\n');
 };
