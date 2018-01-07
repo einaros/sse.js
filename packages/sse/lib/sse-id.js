@@ -1,24 +1,48 @@
+const IncomingMessage = require('http').IncomingMessage;
+const ServerResponse = require('http').ServerResponse;
 const assert = require('./utils/assert');
 
-function createSSEIDClass(sseService, internal) {
+const internal = require('./utils/weak-map').getInternal();
+
+/**
+ * @param {string} _secureId
+ * @returns {function}
+ */
+function createSSEIDClass(_secureId) {
   return class SSEID {
-    constructor(secureId) {
+    /**
+     * @param {!string} secureId
+     * @param {IncomingMessage} req
+     * @param {ServerResponse} res
+     */
+    constructor(secureId, req, res) {
       // Using assert.equal would leak the secureId. Use assert.isTrue instead.
       assert.isTrue(
-        secureId === internal(sseService).secureId,
-        'Cannot create an instance of the SSEID without the secureId from the factory'
+        secureId === _secureId,
+        'Cannot create an instance of the SSEID without the secureId from the sseService'
       );
-    }
+      assert.instanceOf(req, IncomingMessage);
+      assert.instanceOf(res, ServerResponse);
 
-    get sseService() {
-      return sseService;
+      internal(this).res = res;
+      internal(this).lastEventId =
+        typeof req.headers['last-event-id'] === 'string'
+          ? req.headers['last-event-id']
+          : null;
     }
 
     /**
-     * @returns {boolean}
+     * @returns {string|null}
      */
-    get isConnectionActive() {
-      return internal(sseService).activeSSEConnections.has(this);
+    get lastEventId() {
+      return internal(this).lastEventId;
+    }
+
+    /**
+     * @returns {Object}
+     */
+    get locals() {
+      return internal(this).res.locals;
     }
   };
 }

@@ -3,8 +3,9 @@ const ServerResponse = require('http').ServerResponse;
 const EventEmitter = require('events');
 const uuidv4 = require('uuid/v4');
 const async = require('async');
+const validateRequestForSSE = require('./utils').validateRequestForSSE;
 const assert = require('./utils/assert');
-const { maybeFn } = require('./utils/maybe');
+const { isSet, maybeFn } = require('./utils/maybe');
 const { createSSEIDClass } = require('./sse-id');
 
 const internal = require('./utils/weak-map').getInternal();
@@ -20,28 +21,44 @@ const SSE_HTTP_RESPONSE_HEADERS = {
 class SSEService extends EventEmitter {
   constructor() {
     super();
+
     const internals = internal(this);
     internals.secureId = uuidv4();
-    internals.SSEID = createSSEIDClass(this, internal);
+    internals.SSEID = createSSEIDClass(internals.secureId);
     internals.activeSSEConnections = new Map();
     internals.blockIncomingConnections = false;
-    internals.applyForTarget = applyForTarget.bind(this);
 
     // Keeping connection alive by periodically sending comments (https://www.w3.org/TR/eventsource/#notes)
     internals.heartbeatIntervalId = setInterval(() => {
       this.send({ comment: '' });
     }, HEARTBEAT_INTERVAL * 1000).unref();
 
-    // So `sseService.register` can be used as a standalone function (as an express middleware, for instance)
+    // Allowing method to be used as a standalone function
     this.register = this.register.bind(this);
+
+    // Private methods, not to be exposed publicly
+    internals.applyForTarget = _applyForTarget.bind(this);
+    internals.unregisterFn = _unregisterFn.bind(this);
+    internals.getSSEIdFromResponse = _getSSEIdFromResponse.bind(this);
   }
 
+  /** @returns {function} */
   get SSEID() {
     return internal(this).SSEID;
   }
 
+  /** @returns {number} */
   get numActiveConnections() {
     return internal(this).activeSSEConnections.size;
+  }
+
+  /**
+   * @param {SSEID} sseId
+   * @returns {boolean}
+   */
+  isConnectionActive(sseId) {
+    assert.instanceOf(sseId, internal(this).SSEID);
+    return internal(this).activeSSEConnections.has(sseId);
   }
 
   /**
@@ -69,22 +86,12 @@ class SSEService extends EventEmitter {
     const { activeSSEConnections, SSEID, secureId } = internal(this);
 
     // Not registering a connection that has already been registered
-    if (getSSEIdFromResponse(res, SSEID) !== null) {
+    if (internal(this).getSSEIdFromResponse(res) !== null) {
       return;
     }
 
-    let sseId = null;
     try {
-      sseId = new SSEID(secureId);
-      writeSSELocalsInResponse(req, res, sseId);
       res.writeHead(200, SSE_HTTP_RESPONSE_HEADERS);
-
-      res.on('close', () =>
-        this.unregister(sseId, () =>
-          this.emit('clientClose', sseId, res.locals)
-        )
-      );
-      res.on('finish', () => this.unregister(sseId));
     } catch (e) {
       // Events must be emitted asynchronously
       process.nextTick(() => {
@@ -105,29 +112,22 @@ class SSEService extends EventEmitter {
         );
         return;
       }
+
+      if (!res.hasOwnProperty('locals'))
+        Object.defineProperty(res, 'locals', { value: {} });
+      const sseId = new SSEID(secureId, req, res);
+      res.on('close', () =>
+        this.unregister(sseId, () => this.emit('clientClose', sseId))
+      );
+      res.on('finish', () => this.unregister(sseId));
       activeSSEConnections.set(sseId, res);
-      this.emit('connection', sseId, res.locals);
+      internal(res).sseId = sseId;
+      this.emit('connection', sseId);
     });
   }
 
   unregister(target, cb) {
-    const { activeSSEConnections } = internal(this);
-
-    const fn = (res, _cb) => {
-      const finish = err => {
-        const sseId = getSSEIdFromResponse(res, internal(this).SSEID);
-        activeSSEConnections.delete(sseId);
-        _cb(err);
-      };
-
-      if (res.finished || res.socket.destroyed) {
-        process.nextTick(finish);
-      } else {
-        res.end(finish);
-      }
-    };
-
-    internal(this).applyForTarget(fn, target, cb);
+    internal(this).applyForTarget(internal(this).unregisterFn, target, cb);
   }
 
   /**
@@ -188,19 +188,33 @@ class SSEService extends EventEmitter {
 
 module.exports = SSEService;
 
-function applyForTarget(fn, target, cb) {
+function wrapError(err, msg) {
+  err.name = 'SSEServiceError';
+  err.message = `${msg}: ${err.message}`;
+  return err;
+}
+
+/* --- Private Methods --- */
+
+/**
+ * _applyForTarget cannot be public, as it exposes Node's ServerResponse to `fn`
+ * @param {function} fn
+ * @param {SSEID | function | undefined} target
+ * @param {function} cb
+ */
+function _applyForTarget(fn, target, cb) {
   assert.isFunction(fn);
   cb = maybeFn(cb || target);
-  target =
-    (typeof target === 'function' && target !== cb) ||
-    target instanceof internal(this).SSEID
-      ? target
-      : null;
+  if (
+    (typeof target !== 'function' || target === cb) &&
+    !(target instanceof internal(this).SSEID)
+  )
+    target = null;
 
   const { activeSSEConnections, SSEID } = internal(this);
 
   if (target instanceof SSEID) {
-    if (!target.isConnectionActive) return;
+    if (!this.isConnectionActive(target)) return;
     fn(activeSSEConnections.get(target), cb);
     return;
   }
@@ -215,71 +229,26 @@ function applyForTarget(fn, target, cb) {
   async.parallel(fns, cb);
 }
 
-function wrapError(err, msg) {
-  err.name = 'SSEServiceError';
-  err.message = `${msg}: ${err.message}`;
-  return err;
-}
+function _unregisterFn(res, _cb) {
+  const finish = err => {
+    const sseId = internal(this).getSSEIdFromResponse(res);
+    internal(this).activeSSEConnections.delete(sseId);
+    _cb(err);
+  };
 
-/**
- * @param {IncomingMessage} req
- * @param {ServerResponse} res
- * @return {{status: number, message: string} | null}
- */
-function validateRequestForSSE(req, res) {
-  if (res.headersSent)
-    return {
-      status: 500,
-      message: 'Cannot register a connection with headers already sent'
-    };
-  if (req.headers['accept'] !== 'text/event-stream')
-    return {
-      status: 400,
-      message:
-        'Cannot register connection : The request HTTP header "Accept" is not set to "text/event-stream"'
-    };
-  return null;
-}
-
-function writeSSELocalsInResponse(req, res, sseId) {
-  if (!(res.locals instanceof Object)) res.locals = {};
-
-  const sse = {};
-  if (req.headers['last-event-id'])
-    sse.lastEventId = req.headers['last-event-id'];
-  Object.defineProperty(sse, 'sseId', {
-    value: sseId,
-    writable: false,
-    enumerable: true,
-    configurable: false
-  });
-  Object.defineProperty(res.locals, 'sse', {
-    value: sse,
-    writable: false,
-    enumerable: true,
-    configurable: false
-  });
+  if (res.finished || res.socket.destroyed) {
+    process.nextTick(finish);
+  } else {
+    res.end(finish);
+  }
 }
 
 /**
  * @param {ServerResponse} res
- * @param {function} SSEID
- * @param {Object} [res.locals]
  * @returns {SSEID | null}
  */
-function getSSEIdFromResponse(res, SSEID) {
+function _getSSEIdFromResponse(res) {
   assert.instanceOf(res, ServerResponse);
-  const sseId = res.locals && res.locals.sse && res.locals.sse.sseId;
-  if (sseId instanceof SSEID) return sseId;
-  return null;
+  const sseId = internal(res).sseId;
+  return sseId instanceof internal(this).SSEID ? sseId : null;
 }
-
-function isSet(e) {
-  return e !== undefined && e !== null;
-}
-
-/**
- * @callback transformFn
- * @param {*} data
- * @return *
- */

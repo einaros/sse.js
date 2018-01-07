@@ -7,16 +7,21 @@ An unopinionated, minimalist, [standard](https://html.spec.whatwg.org/multipage/
 ```javascript
 const http = require('http');
 const { SSEService } = require('sse');
+const { authenticate } = require('./authentication');
 
 const sseService = new SSEService();
 http.createServer((request, response) => {
-  if(request.method === 'GET' && request.url === '/sse')
+  
+  if(request.method === 'GET' && request.url === '/sse') {
+    res.locals = { auth: authenticate(request, response) };
     sseService.register(request, response);
+  }
+  
 }).listen(8080);
 
 sseService.on('connection', sseId => {
   sseService.send('hello', sseId); // sends data to a single response
-  sseService.send({event:'user-connected'}); // broadcasts data to all responses
+  sseService.send({event:'user-connected', data: sseId.locals.auth.userName}); // broadcasts data to all responses
 });
 ```
 
@@ -26,17 +31,18 @@ sseService.on('connection', sseId => {
 const http = require('http');
 const express = require('express');
 const { SSEService } = require('sse');
+const authenticationMW = require('./middlewares/authentication');
 
 const app = express();
 const sseService = new SSEService();
 
-app.get('/sse', sseService.register);
+app.get('/sse', authenticationMW, sseService.register);
 
 http.createServer(app).listen(8080);
 
 sseService.on('connection', sseId => {
   sseService.send('hello', sseId); // sends data to a single response
-  sseService.send({event:'user-connected'}); // broadcasts data to all responses
+  sseService.send({event:'user-connected', data: sseId.locals.auth.userName}); // broadcasts data to all responses
 })
 ```
 
@@ -51,18 +57,18 @@ The `sseService` allows to send data with fine-grained targeting on the open SSE
  * [Class sse.SSEService](#class-ssesseservice)
      * [new sse.SSEService()](#new-ssesseservice)
      * [Class: sseService.SSEID](#class-sseservicesseid)
-        * [sseId.isConnectionActive](#sseidisconnectionactive)
-        * [sseId.sseService](#sseidsseservice)
+        * [sseId.lastEventId](#sseidlasteventid)
+        * [sseId.locals](#sseidlocals)
      * [Event: 'clientClose'](#event-clientclose)
      * [Event: 'connection'](#event-connection)
      * [Event: 'error'](#event-error)
      * [sseService.close([cb])](#sseserviceclosecb)
+        * [sseService.isConnectionActive(sseId)](#sseserviceisconnectionactivesseid)
      * [sseService.numActiveConnections](#sseservicenumactiveconnections)
      * [sseService.register(req, res)](#sseserviceregisterreq-res)
      * [sseService.resetLastEventId([cb])](#sseserviceresetlasteventidcb)
      * [sseService.send(opts[, target[, cb]])](#sseservicesendopts-target-cb)
      * [sseService.unregister([target[, cb]])](#sseserviceunregistertarget-cb)
-
 
 ## Class `sse.SSEService`
 
@@ -76,39 +82,32 @@ While it is allowed to have multiple instances of an `SSEService` on the same se
 
 Identifier object that represents an SSE connection managed by the `sseService`. An `sseId` can only be created by the service. 
 
-#### `sseId.isConnectionActive`
-
-Boolean indicating if the connection is active.
-
- - `true` if this `sseId` represents an active SSE connection.
- - `false` if the connection is closed and no longer managed by the service.
-
 A closed connection can no longer accept Server-Sent Events.
 
-#### `sseId.sseService`
+#### `sseId.lastEventId`
 
-Reference to the `sseService` that issued this `sseId`.
+Returns the `Last-Event-ID` HTTP request header that was issued with the represented SSE connection, if any.
+
+#### `sseId.locals`
+
+Returns the reference to the `response.locals` object, where `response` is the Node.js `ServerResponse` object associated with the represented SSE connection.
+
+This `locals` object is a convention coming [from Express.js](http://expressjs.com/en/api.html#res.locals) to store metadata along with response object. 
+This convention is reproduced here to allow fine-grained targeting when sending events to a set of open SSE connections.
+
+If the `locals` object has not been set prior the registering (for instance, in vanilla Node.js usage), it is set to the empty object `{}` by the sseService.
 
 ### Event: 'clientClose'
 
   - `sseId {sse.SSEID}` - Connection's SSE identifier
-  - `locals {Object}` - The `res.locals` object of the connection
 
 Event emitted when the client closed the connection
 
 ### Event: 'connection'
 
   - `sseId {SSEID}` - Connection's SSE identifier
-  - `locals {Object}` - The `res.locals` object of the connection
   
 Event emitted when an SSE connection has been successfully established
-  
-Example :
-
-    sseService.on('connection', (sseId, {userName}) => {
-      sseService.send('greetings', sseId);   
-      sseService.send(userName, 'userConnected');
-    });
     
 ### Event: 'error'
 
@@ -123,6 +122,13 @@ Event emitted when an error occurred during SSE connection's establishment.
 Closes the service by terminating all open connections, and frees up resources. The service won't accept any more connection. 
 Further incoming connections will be terminated immediately with a `204` HTTP status code, preventing clients from attempting to reconnect.
 
+#### `sseService.isConnectionActive(sseId)`
+
+Returns a boolean indicating if the connection is active.
+
+ - `true` if the `sseId` represents an active SSE connection managed by this sseService.
+ - `false` otherwise. If the sseId was issued from this sseService, the connection is now closed and no longer managed by the service.
+
 ### `sseService.numActiveConnections`
 
 Number of active SSE connections managed by this service (read-only).
@@ -136,14 +142,12 @@ Sets up an SSE connection by doing the following :
 
   - sends appropriate HTTP headers to the response 
   - maintains connection alive with the regular sending of empty comments (called "heartbeats")
-  - assigns an `sseId` to the response and extends the `res.locals` object with an `sse` property :
-    - `res.locals.sse.sseId {object}` : the `sseId` assigned to the response
-    - `res.locals.sse.lastEventId {string}` (optional) : the `Last-Event-ID` HTTP header specified in `req`, if any 
+  - identifies the response with an `sseId`  
        
 The connection will be rejected if the `Accept` header in the `req` object is not set to `'text/event-stream'`.
  
 This function accepts no callback, to avoid subsequent code to possibly sending data to the `res` object. 
-Instead, the service will emit a 'connection' event if the connection was successful. If not, it will emit an 'error' event.
+Instead, the service will emit a 'connection' event with the `sseId` if the connection was successful. If not, it will emit an 'error' event.
 
 ### `sseService.resetLastEventId([cb])`
 

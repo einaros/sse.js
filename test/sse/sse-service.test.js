@@ -92,108 +92,87 @@ describe('SSEService', () => {
       });
       simulateSSEConnection(sseServer);
     });
-  });
-  
-  describe('events', () => {
     
-    describe('connection', () => {
-      it('should emit a \'connection\' event when connection is registered', _done => {
-        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
-        const timeoutId = setTimeout(() => done(new Error(`Did not receive 'connection' event`)), 50).unref();
-        sseService.on('connection', (sseId, locals) => {
-          clearTimeout(timeoutId);
-          try {
-            assert.instanceOf(sseId, sseService.SSEID);
-            assert.isTrue(sseId.isConnectionActive);
-            assert.isObject(locals.sse);
-            done();
-          } catch (e) {
-            done(e);
-          }
-        });
-        simulateSSEConnection(sseServer);
-      });
-      
-      it('should not be possible to mutate `locals.sse` and `locals.sse.sseId`', _done => {
-        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
-        const timeoutId = setTimeout(() => done(new Error(`Did not receive 'connection' event`)), 50).unref();
-        sseService.on('connection', (sseId, locals) => {
-          clearTimeout(timeoutId);
-          try {
-            assert.equal(locals.sse.sseId, sseId);
-            locals.sse.sseId = 'fakeId';
-            assert.equal(locals.sse.sseId, sseId);
-            const sse = locals.sse;
-            locals.sse = {};
-            assert.equal(locals.sse, sse);
-            done();
-          } catch (e) {
-            done(e);
-          }
-        });
-        simulateSSEConnection(sseServer);
-      });
-      
-      it('should set `locals.sse.lastEventId` to the Last-Event-ID HTTP request header (if any)', _done => {
-        const lastEventId = 'some-id-123';
-        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
-        const timeoutId = setTimeout(() => done(new Error(`Did not receive 'connection' event`)), 50).unref();
-        sseService.on('connection', (sseId, locals) => {
-          clearTimeout(timeoutId);
-          try {
-            assert.equal(locals.sse.lastEventId, lastEventId);
-            done();
-          } catch (e) {
-            done(e);
-          }
-        });
-        simulateSSEConnection(sseServer, {'last-event-id': lastEventId});
-      });
-    });
-    
-    describe('clientClose', () => {
-      
-      it('should emit a \'clientClose\' event upon client close', _done => {
-        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
-        
-        let sseIdFromConnectionEvent = null;
-        execWithLockOnResource('sseId', () => {
-          sseService.on('connection', sseId => {
-            sseIdFromConnectionEvent = sseId;
-            releaseLock('sseId');
-          });
-        });
-        
-        const timeoutId = setTimeout(() => done(new Error(`Did not receive 'clientClose' event`)), 150).unref();
-        sseService.on('clientClose', (sseId, locals) => {
-          clearTimeout(timeoutId);
-          execWithLockOnResource('sseId', () => {
+    it('should indicate if a connection is active', _done => {
+      const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+      sseService.on('connection', sseId => {
+        try {
+          assert.isTrue(sseService.isConnectionActive(sseId));
+          sseService.unregister(sseId, err => {
+            if (err) return done(err);
             try {
-              assert.equal(sseId, sseIdFromConnectionEvent);
-              assert.isFalse(sseId.isConnectionActive);
-              assert.equal(sseService.numActiveConnections, 0);
-              assert.isObject(locals.sse);
+              assert.isFalse(sseService.isConnectionActive(sseId));
               done();
             } catch (e) {
               done(e);
             }
           });
-        });
-        
-        simulateSSEConnection(sseServer, (err, requestId) => {
-          try {
-            assert.equal(sseService.numActiveConnections, 1);
-          } catch (e) {
-            done(e);
-          }
-          sseServer.endClientResponseIfAny(requestId);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+      simulateSSEConnection(sseServer);
+    });
+  });
+  
+  describe('events', () => {
+    
+    it('should emit a \'connection\' event when connection is registered', _done => {
+      const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+      const timeoutId = setTimeout(() => done(new Error(`Did not receive 'connection' event`)), 50).unref();
+      sseService.on('connection', sseId => {
+        clearTimeout(timeoutId);
+        try {
+          assert.instanceOf(sseId, sseService.SSEID);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+      simulateSSEConnection(sseServer);
+    });
+    
+    it('should emit a \'clientClose\' event upon client close', _done => {
+      const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+      
+      let sseIdFromConnectionEvent = null;
+      execWithLockOnResource('sseId', () => {
+        sseService.on('connection', sseId => {
+          sseIdFromConnectionEvent = sseId;
+          releaseLock('sseId');
         });
       });
       
-    })
+      const timeoutId = setTimeout(() => done(new Error(`Did not receive 'clientClose' event`)), 150).unref();
+      sseService.on('clientClose', sseId => {
+        clearTimeout(timeoutId);
+        execWithLockOnResource('sseId', () => {
+          try {
+            assert.equal(sseId, sseIdFromConnectionEvent);
+            assert.isFalse(sseService.isConnectionActive(sseId));
+            assert.equal(sseService.numActiveConnections, 0);
+            done();
+          } catch (e) {
+            done(e);
+          }
+        });
+      });
+      
+      simulateSSEConnection(sseServer, (err, requestId) => {
+        try {
+          assert.equal(sseService.numActiveConnections, 1);
+        } catch (e) {
+          done(e);
+        }
+        sseServer.endClientResponseIfAny(requestId);
+      });
+    });
+    
   });
   
   describe('sending data', () => {
+    
     it('should send data to a single connection (id, event, data, retry, comment)', _done => {
       const id = '2347', event = 'connection', data = {hello: 'world'}, retry = 100, comment = 'hey, there !';
       const opts = {id, event, data, retry, comment};
@@ -250,6 +229,7 @@ describe('SSEService', () => {
         });
       });
     });
+    
   });
   
   describe('sseid', () => {
@@ -267,34 +247,30 @@ describe('SSEService', () => {
       });
       simulateSSEConnection(sseServer);
     });
-    
-    it('should contain a reference to the emitting sseService', _done => {
+  
+    it('should contain the last-event-id, if any', _done => {
+      const lastEventId = 'some-id-123';
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+      const timeoutId = setTimeout(() => done(new Error(`Did not receive 'connection' event`)), 50).unref();
       sseService.on('connection', sseId => {
+        clearTimeout(timeoutId);
         try {
-          assert.equal(sseId.sseService, sseService);
+          assert.equal(sseId.lastEventId, lastEventId);
           done();
         } catch (e) {
           done(e);
         }
       });
-      simulateSSEConnection(sseServer);
+      simulateSSEConnection(sseServer, {'last-event-id': lastEventId});
     });
-    
-    it('indicates if the represented connection is active', _done => {
+  
+    it('should contain a reference to the res.locals object', _done => {
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+      const timeoutId = setTimeout(() => done(new Error(`Did not receive 'connection' event`)), 50).unref();
       sseService.on('connection', sseId => {
+        clearTimeout(timeoutId);
         try {
-          assert.equal(sseId.isConnectionActive, true);
-          sseService.unregister(sseId, err => {
-            if (err) return done(err);
-            try {
-              assert.equal(sseId.isConnectionActive, false);
-              done();
-            } catch (e) {
-              done(e);
-            }
-          });
+          assert.isObject(sseId.locals);
           done();
         } catch (e) {
           done(e);
@@ -306,11 +282,11 @@ describe('SSEService', () => {
   });
   
   describe('other', () => {
+    
     it('should provide a reference to the SSEID constructor', () => {
       const sseService = new SSEService();
       assert.isFunction(sseService.SSEID);
     });
-    
     
     it('should send heartbeats every 15 seconds', _done => {
       
@@ -354,6 +330,7 @@ describe('SSEService', () => {
         const timeoutId = setTimeout(() => done(new Error(`Timeout : heartbeats not sent every 15 seconds`)), 150).unref();
       });
     });
+    
   });
 });
 
