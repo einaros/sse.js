@@ -63,7 +63,7 @@ The `sseService` allows to send data with fine-grained targeting on the open SSE
      * [Event: 'connection'](#event-connection)
      * [Event: 'error'](#event-error)
      * [sseService.close([cb])](#sseserviceclosecb)
-        * [sseService.isConnectionActive(sseId)](#sseserviceisconnectionactivesseid)
+     * [sseService.isConnectionActive(sseId)](#sseserviceisconnectionactivesseid)
      * [sseService.numActiveConnections](#sseservicenumactiveconnections)
      * [sseService.register(req, res)](#sseserviceregisterreq-res)
      * [sseService.resetLastEventId([cb])](#sseserviceresetlasteventidcb)
