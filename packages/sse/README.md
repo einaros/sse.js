@@ -122,7 +122,7 @@ Event emitted when an error occurred during SSE connection's establishment.
 Closes the service by terminating all open connections, and frees up resources. The service won't accept any more connection. 
 Further incoming connections will be terminated immediately with a `204` HTTP status code, preventing clients from attempting to reconnect.
 
-#### `sseService.isConnectionActive(sseId)`
+### `sseService.isConnectionActive(sseId)`
 
 Returns a boolean indicating if the connection is active.
 
