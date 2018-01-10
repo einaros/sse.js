@@ -3,20 +3,15 @@ const ServerResponse = require('http').ServerResponse;
 const EventEmitter = require('events');
 const uuidv4 = require('uuid/v4');
 const async = require('async');
+const wrapError = require('./utils').wrapError;
 const validateRequestForSSE = require('./utils').validateRequestForSSE;
+const setupHTTPResponse = require('./utils').setupHTTPResponse;
+const { HEARTBEAT_INTERVAL } = require('./utils/constants');
 const assert = require('./utils/assert');
 const { isSet, maybeFn } = require('./utils/maybe');
 const { createSSEIDClass } = require('./sse-id');
 
 const internal = require('./utils/weak-map').getInternal();
-
-const HEARTBEAT_INTERVAL = 15;
-const SSE_HTTP_RESPONSE_HEADERS = {
-  'Content-Type': 'text/event-stream',
-  Connection: 'keep-alive',
-  'Cache-Control': 'no-cache',
-  'X-Accel-Buffering': 'no'
-};
 
 class SSEService extends EventEmitter {
   constructor() {
@@ -40,6 +35,8 @@ class SSEService extends EventEmitter {
     internals.applyForTarget = _applyForTarget.bind(this);
     internals.unregisterFn = _unregisterFn.bind(this);
     internals.getSSEIdFromResponse = _getSSEIdFromResponse.bind(this);
+    internals.verifyRequest = _verifyRequest.bind(this);
+    internals.setupSSE = _setupSSE.bind(this);
   }
 
   /** @returns {function} */
@@ -69,61 +66,19 @@ class SSEService extends EventEmitter {
     assert.instanceOf(req, IncomingMessage);
     assert.instanceOf(res, ServerResponse);
 
-    const validationError = validateRequestForSSE(req, res);
-    if (validationError !== null) {
-      res.writeHead(validationError.status);
-      res.end(JSON.stringify({ error: validationError.message }));
-      return;
-    }
-
-    if (internal(this).blockIncomingConnections) {
-      // We're not doing anything fancy here. A more elaborate strategy (sending a "retry", status code 204, ...)
-      // can be defined later if there is a need from the community.
-      res.end();
-      return;
-    }
-
-    const { activeSSEConnections, SSEID, secureId } = internal(this);
-
-    // Not registering a connection that has already been registered
-    if (internal(this).getSSEIdFromResponse(res) !== null) {
-      return;
-    }
-
-    try {
-      res.writeHead(200, SSE_HTTP_RESPONSE_HEADERS);
-    } catch (e) {
-      // Events must be emitted asynchronously
-      process.nextTick(() => {
-        this.emit('error', wrapError(e, 'Could not register connection'));
-      });
-      res.writeHead(500);
-      res.end();
-      return;
-    }
-
-    // Sending empty comment to flush data.
-    // Cannot call this.send() because connection is not registered to the service yet.
-    res.write(':\n\n', err => {
+    const onHTTPResponseReady = err => {
       if (err) {
-        this.emit(
-          'error',
-          wrapError(err, 'Could not send initial heartbeat payload')
-        );
+        this.emit('error', wrapError(e, 'Could not register connection'));
         return;
       }
-
-      if (!res.hasOwnProperty('locals'))
-        Object.defineProperty(res, 'locals', { value: {} });
-      const sseId = new SSEID(secureId, req, res);
-      res.on('close', () =>
-        this.unregister(sseId, () => this.emit('clientClose', sseId))
-      );
-      res.on('finish', () => this.unregister(sseId));
-      activeSSEConnections.set(sseId, res);
-      internal(res).sseId = sseId;
+      const sseId = internal(this).setupSSE(req, res);
       this.emit('connection', sseId);
-    });
+    };
+
+    const mayRegisterConnection = internal(this).verifyRequest(req, res);
+    if (mayRegisterConnection) {
+      setupHTTPResponse(res, onHTTPResponseReady);
+    }
   }
 
   unregister(target, cb) {
@@ -188,12 +143,6 @@ class SSEService extends EventEmitter {
 
 module.exports = SSEService;
 
-function wrapError(err, msg) {
-  err.name = 'SSEServiceError';
-  err.message = `${msg}: ${err.message}`;
-  return err;
-}
-
 /* --- Private Methods --- */
 
 /**
@@ -254,4 +203,58 @@ function _getSSEIdFromResponse(res) {
   assert.instanceOf(res, ServerResponse);
   const sseId = internal(res).sseId;
   return sseId instanceof internal(this).SSEID ? sseId : null;
+}
+
+/**
+ * @param {ServerResponse} req
+ * @param {IncomingMessage} res
+ * @returns {boolean}
+ * @private
+ */
+function _verifyRequest(req, res) {
+  const validationError = validateRequestForSSE(req, res);
+  if (validationError !== null) {
+    res.writeHead(validationError.status);
+    res.end(JSON.stringify({ error: validationError.message }));
+    return false;
+  }
+
+  if (internal(this).blockIncomingConnections) {
+    // We're not doing anything fancy here. A more elaborate strategy (sending a "retry", status code 204, ...)
+    // can be defined later if there is a need from the community.
+    res.end();
+    return false;
+  }
+
+  // Not registering a connection that has already been registered
+  return internal(this).getSSEIdFromResponse(res) === null;
+}
+
+/**
+ * @param {IncomingMessage} req
+ * @param {ServerResponse} res
+ * @returns {SSEID}
+ * @private
+ */
+function _setupSSE(req, res) {
+  const { activeSSEConnections, SSEID, secureId } = internal(this);
+
+  // Setting up locals object if it doesn't exist
+  if (!res.hasOwnProperty('locals'))
+    Object.defineProperty(res, 'locals', { value: {} });
+
+  // Identifier of the SSE connection
+  const sseId = new SSEID(secureId, req, res);
+
+  // Event handlers to guarantee state integrity
+  res.on('close', () =>
+    this.unregister(sseId, () => this.emit('clientClose', sseId))
+  );
+  res.on('finish', () => this.unregister(sseId));
+
+  // Updating internal state
+  activeSSEConnections.set(sseId, res);
+  internal(res).sseId = sseId;
+
+  return sseId;
 }
