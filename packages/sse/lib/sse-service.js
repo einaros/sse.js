@@ -69,20 +69,20 @@ class SSEService extends EventEmitter {
     assert.instanceOf(req, IncomingMessage);
     assert.instanceOf(res, ServerResponse);
 
-    if (internal(this).blockIncomingConnections) {
-      // Preventing reconnection with status code 204 (https://www.w3.org/TR/eventsource/#server-sent-events-intro)
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
     const validationError = validateRequestForSSE(req, res);
     if (validationError !== null) {
       res.writeHead(validationError.status);
       res.end(JSON.stringify({ error: validationError.message }));
       return;
     }
-
+  
+    if (internal(this).blockIncomingConnections) {
+      // We're not doing anything fancy here. A more elaborate strategy (sending a "retry", status code 204, ...)
+      // can be defined later if there is a need from the community.
+      res.end();
+      return;
+    }
+    
     const { activeSSEConnections, SSEID, secureId } = internal(this);
 
     // Not registering a connection that has already been registered
