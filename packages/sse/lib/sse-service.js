@@ -75,14 +75,14 @@ class SSEService extends EventEmitter {
       res.end(JSON.stringify({ error: validationError.message }));
       return;
     }
-  
+
     if (internal(this).blockIncomingConnections) {
       // We're not doing anything fancy here. A more elaborate strategy (sending a "retry", status code 204, ...)
       // can be defined later if there is a need from the community.
       res.end();
       return;
     }
-    
+
     const { activeSSEConnections, SSEID, secureId } = internal(this);
 
     // Not registering a connection that has already been registered
@@ -214,7 +214,10 @@ function _applyForTarget(fn, target, cb) {
   const { activeSSEConnections, SSEID } = internal(this);
 
   if (target instanceof SSEID) {
-    if (!this.isConnectionActive(target)) return;
+    if (!this.isConnectionActive(target)) {
+      cb();
+      return;
+    }
     fn(activeSSEConnections.get(target), cb);
     return;
   }
