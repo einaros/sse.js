@@ -9,7 +9,7 @@ app.use('/sse', sseService.register);
 app.use('/', express.static(path.join(__dirname, 'public')));
 
 const server = http.createServer(app);
-server.listen(8080, err => {
+server.listen(9530, err => {
   if(err) throw err;
-  console.log('Server is up on port 8080. Please, visit http://localhost:8080');
+  console.log('Server is up on port 9530. Please, visit http://localhost:9530');
 });

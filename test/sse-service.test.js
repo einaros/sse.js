@@ -1,5 +1,5 @@
 const assert = require('chai').assert;
-const SSEService = require('../../packages/sse/lib/sse-service');
+const SSEService = require('../lib/sse-service');
 const {port} = require('./config');
 const createSSEServer = require('./utils/server').createSSEServer;
 const resetRequestIdCounter = require('./utils/client').resetRequestIdCounter;

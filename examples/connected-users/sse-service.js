@@ -1,4 +1,4 @@
-const SSEService = require('../../packages/sse').SSEService;
+const SSEService = require('../../index').SSEService;
 const sseService = new SSEService();
 
 let nrConnections = 0;

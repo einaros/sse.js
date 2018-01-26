@@ -1,15 +1,22 @@
 {
+  "name": "sse",
+  "version": "1.0.0-rc0",
   "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git://github.com/einaros/sse.js.git"
   },
+  "main": "index.js",
   "scripts": {
     "lint": "npm run prettier",
     "prettier": "prettier --single-quote --write \"packages/**/*.js\"",
     "test": "node_modules/.bin/mocha test/**/*.test.js",
     "test-coverage": "nyc mocha --timeout=3000 test/**/*.test.js && nyc report --reporter=html"
+  },
+  "dependencies": {
+    "async": "^2.6.0",
+    "uuid": "^3.1.0"
   },
   "devDependencies": {
     "async": "^2.6.0",
@@ -18,5 +25,13 @@
     "mocha": "^4.0.1",
     "nyc": "^11.3.0",
     "prettier": "1.9.2"
+  },
+  "keywords": [
+    "real-time",
+    "server-sent-events",
+    "sse"
+  ],
+  "engines": {
+    "node": ">=6.0.0"
   }
 }
