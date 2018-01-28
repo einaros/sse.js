@@ -1,4 +1,7 @@
 const assert = require('chai').assert;
+const http = require('http');
+const ServerResponse = http.ServerResponse;
+const IncomingMessage = http.IncomingMessage;
 const SSEService = require('../lib/sse-service');
 const {port} = require('./config');
 const createSSEServer = require('./utils/server').createSSEServer;
@@ -247,7 +250,7 @@ describe('SSEService', () => {
       });
       simulateSSEConnection(sseServer);
     });
-  
+    
     it('should contain the last-event-id, if any', _done => {
       const lastEventId = 'some-id-123';
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
@@ -263,7 +266,7 @@ describe('SSEService', () => {
       });
       simulateSSEConnection(sseServer, {'last-event-id': lastEventId});
     });
-  
+    
     it('should contain a reference to the res.locals object', _done => {
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
       const timeoutId = setTimeout(() => done(new Error(`Did not receive 'connection' event`)), 50).unref();
@@ -279,6 +282,315 @@ describe('SSEService', () => {
       simulateSSEConnection(sseServer);
     });
     
+  });
+  
+  describe('middleware', () => {
+    
+    describe('afterRegister (async)', () => {
+      
+      it('should be called with the correct parameters (sseService, sseId, next)', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        const timeoutId = setTimeout(() => done(new Error(`Did not reach lifecycle hook`)), 50).unref();
+        sseService.use({
+          afterRegister: function (_sseService, sseId, next) {
+            clearTimeout(timeoutId);
+            try {
+              assert.equal(sseService, _sseService);
+              assert.instanceOf(sseId, sseService.SSEID);
+              assert.isFunction(next);
+              assert(arguments.length === 3);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          }
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+      it('should be called before the \'connection\' event', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        const timeoutId = setTimeout(() => done(new Error(`did not reach lifecycle hook`)), 50).unref();
+        let counter = 0;
+        sseService.use({
+          afterRegister: function (sseService, sseId, next) {
+            if (counter > 0) {
+              clearTimeout(timeoutId);
+              done(new Error(''));
+            } else {
+              counter++;
+              setTimeout(next, 20);
+            }
+          }
+        });
+        sseService.on('connection', () => {
+          clearTimeout(timeoutId);
+          if (counter === 0)
+            done(new Error('The \'connection\' event should not be fired before the afterRegister middleware is called'));
+          else
+            done();
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+      it('should be called upstream in the lifecycle sequence', _done => {
+        let expectedStep = `'connection' event`;
+        const timeoutId = setTimeout(() => done(new Error(`Did not receive ${expectedStep}`)), 50).unref();
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        sseService.use(
+          {
+            afterRegister: (sseService, sseId, next) => {
+              sseService.send({data: 'And this!'}, sseId, next);
+            }
+          },
+          {
+            afterRegister: (sseService, sseId, next) => {
+              sseService.send({data: 'Take this!'}, sseId, next);
+            }
+          }
+        );
+        let counter = 0;
+        simulateSSEConnection(sseServer, (err, requestId) => {
+          sseServer.getClientResponse(requestId).on('data', chunk => {
+            if (counter === 0) {
+              counter++;
+            } else if (counter === 1) {
+              try {
+                assert.equal(chunk.toString(), 'data:"Take this!"\n\n', `Unexpected payload of data received`);
+                counter++;
+              } catch (e) {
+                clearTimeout(timeoutId);
+                done(e);
+              }
+            } else {
+              clearTimeout(timeoutId);
+              try {
+                assert.equal(chunk.toString(), 'data:"And this!"\n\n', `Unexpected payload of data received`);
+                done();
+              } catch (e) {
+                done(e);
+              }
+            }
+          });
+        });
+      });
+      
+      it('should emit errors', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done, false);
+        const timeoutId = setTimeout(() => done(new Error(`Did not receive 'error' event`)), 50).unref();
+        sseService.use({
+          afterRegister: (sseService, sseId, next) => {
+            next(new Error('Some error'));
+          }
+        });
+        sseService.on('error', err => {
+          clearTimeout(timeoutId);
+          done();
+        });
+        sseService.on('connection', sseId => {
+          clearTimeout(timeoutId);
+          done(new Error('The \'connection\' event should not be fired'))
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+    });
+    
+    describe('beforeRegister (async)', () => {
+      
+      it('should be called with the correct parameters (sseService, req, res, next)', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        const timeoutId = setTimeout(() => done(new Error(`Did not reach lifecycle hook`)), 50).unref();
+        sseService.use({
+          beforeRegister: function (_sseService, req, res, next) {
+            clearTimeout(timeoutId);
+            try {
+              assert.equal(sseService, _sseService);
+              assert.instanceOf(req, IncomingMessage);
+              assert.instanceOf(res, ServerResponse);
+              assert.isFunction(next);
+              assert(arguments.length === 4);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          }
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+      it('should be called after request validation', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        const timeoutId = setTimeout(() => done(new Error(`Did not receive response from server`)), 50).unref();
+        sseService.use({
+          beforeRegister: (sseService, req, res, next) => {
+            clearTimeout(timeoutId);
+            done(new Error('The \'beforeRegister\' hook should not have been reached'));
+          }
+        });
+        simulateSSEConnection(sseServer, {accept: 'application/json'}, (err, requestId) => {
+          const clientResponse = sseServer.getClientResponse(requestId);
+          clientResponse.on('data', chunk => {
+            clearTimeout(timeoutId);
+            try {
+              assert.equal(clientResponse.statusCode, 400);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          })
+        });
+      });
+      
+      it('should be called before the HTTP request and sseId are set up', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        const timeoutId = setTimeout(() => done(new Error(`Did not reach lifecycle hook`)), 50).unref();
+        sseService.use({
+          beforeRegister: (sseService, req, res, next) => {
+            clearTimeout(timeoutId);
+            try {
+              assert.isFalse(res.headersSent);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          }
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+      it('should be called downstream in the lifecycle sequence', _done => {
+        const timeoutId = setTimeout(() => done(new Error(`Did not receive'connection' event`)), 50).unref();
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        sseService.use(
+          {
+            beforeRegister: (sseService, req, res, next) => {
+              req.headers['last-event-id'] = 'I am the Last-Event-ID';
+              next();
+            }
+          },
+          {
+            beforeRegister: (sseService, req, res, next) => {
+              req.headers['last-event-id'] = 'No, I am the Last-Event-ID!';
+              next();
+            }
+          }
+        );
+        sseService.on('connection', sseId => {
+          clearTimeout(timeoutId);
+          try {
+            assert.equal(sseId.lastEventId, 'No, I am the Last-Event-ID!')
+            done();
+          } catch (e) {
+            done(e);
+          }
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+      it('should emit errors', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done, false);
+        const timeoutId = setTimeout(() => done(new Error(`Did not receive 'error' event`)), 50).unref();
+        sseService.use({
+          beforeRegister: (sseService, req, res, next) => {
+            next(new Error('Some error'));
+          }
+        });
+        sseService.on('error', err => {
+          clearTimeout(timeoutId);
+          done();
+        });
+        sseService.on('connection', sseId => {
+          clearTimeout(timeoutId);
+          done(new Error('The \'connection\' event should not be fired'))
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+    });
+    
+    describe('transformSend (sync)', () => {
+      
+      it('should be called with the correct parameters (payload)', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        sseService.use({
+          transformSend: function (payload) {
+            try {
+              assert(arguments.length === 1);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          }
+        });
+        sseService.on('connection', sseId => {
+          sseService.send({comment: ''}, sseId);
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+      it('should be called downstream in the lifecycle sequence', _done => {
+        let expectedStep = `'connection' event`;
+        const timeoutId = setTimeout(() => done(new Error(`Did not receive ${expectedStep}`)), 50).unref();
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        sseService.use(
+          {
+            transformSend: payload => (
+              payload.data
+                ? Object.assign({}, payload, {data: 'Hey ' + payload.data})
+                : payload
+            )
+          },
+          {
+            transformSend: payload => (
+              payload.data
+                ? Object.assign({}, payload, {data: 'there! ' + payload.data})
+                : payload
+            )
+          }
+        );
+        sseService.on('connection', sseId => {
+          sseService.send({data: 'Welcome!'}, sseId);
+          expectedStep = `response from server`
+        });
+        
+        let heartBeatCounter = 0;
+        simulateSSEConnection(sseServer, (err, requestId) => {
+          sseServer.getClientResponse(requestId).on('data', chunk => {
+            if (heartBeatCounter === 0) {
+              heartBeatCounter++;
+            } else {
+              clearTimeout(timeoutId);
+              try {
+                assert.equal(chunk.toString(), 'data:"Hey there! Welcome!"\n\n', `Unexpected payload of data received`);
+                done();
+              } catch (e) {
+                done(e);
+              }
+            }
+          });
+        });
+      });
+      
+      it('should pass errors to sseService.send\'s callback', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done, false);
+        const timeoutId = setTimeout(() => done(new Error(`Did not receive the error`)), 50).unref();
+        sseService.use({
+          transformSend: (payload) => {
+            throw new Error('Formatting error');
+          }
+        });
+        sseService.on('connection', sseId => {
+          sseService.send({data: 'test'}, sseId, err => {
+            clearTimeout(timeoutId);
+            if (err) done();
+            else done(new Error('Expected error to be passed to send\'s callback'));
+          })
+        });
+        simulateSSEConnection(sseServer);
+      });
+      
+    });
   });
   
   describe('other', () => {
@@ -339,9 +651,10 @@ describe('SSEService', () => {
 /**
  * @param {SSEServer} sseServer
  * @param {function} _done
+ * @param {boolean} [addErrorHandler]
  * @returns {{sseService: SSEService, done: function}}
  */
-function setupSSEServiceForServer(sseServer, _done) {
+function setupSSEServiceForServer(sseServer, _done, addErrorHandler = true) {
   let called = false;
   const done = new Proxy(_done, {
     apply: function (target, that, args) {
@@ -352,7 +665,8 @@ function setupSSEServiceForServer(sseServer, _done) {
     }
   });
   const sseService = new SSEService();
-  sseService.on('error', done);
+  if (addErrorHandler)
+    sseService.on('error', done);
   sseServer.setSSEService(sseService);
   return {sseService, done};
 }
