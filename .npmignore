@@ -1,1 +1,4 @@
+.idea/
+.nyc_output/
+coverage/
 test/
