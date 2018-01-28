@@ -215,7 +215,7 @@ sseService.use({
 
 Synchronous hooks are pure functions that return the exact same number of arguments they receive. On invocation, such hooks are composed together (as in `f(g(x))`).
 
-Asynchronous hooks receive a `next` function a last argument. This function MUST be called when the hook has finished its job, with possibly an error as only argument. On invocation, asynchronous hooks are composed together in a waterfall sequence. They do not pass data along to each other.
+Asynchronous hooks receive a `next` function as last argument. This function MUST be called when the hook has finished its job, with possibly an error as only argument. On invocation, asynchronous hooks are composed together in a waterfall sequence. They do not pass data along to each other.
 
 # Support
 
