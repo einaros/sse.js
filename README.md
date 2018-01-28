@@ -42,6 +42,7 @@ This service guarantees consistency with respect to the [EventSource specificati
      * [sseService.resetLastEventId([cb])](#sseserviceresetlasteventidcb)
      * [sseService.send(opts[, target[, cb]])](#sseservicesendopts-target-cb)
      * [sseService.unregister([target[, cb]])](#sseserviceunregistertarget-cb)
+     * [sseService.use(...middlewares)](#sseserviceusemiddlewares)
 
 ## Class `sse.SSEService`
 
@@ -154,6 +155,67 @@ Clients that close the connection on their own will be automatically unregistere
 
 > **Note** Due to the optional nature of both the `target` and `cb` arguments, if `sseService.unregister` is called
 > with only one function as its argument, this function will be considered as the callback. This behaviour will be applied to all methods having a `target` argument.
+
+### `sseService.use(...middlewares)`
+
+Adds the middleware sequence to the middleware stack.
+
+A middleware is an object implementing various lifecycle hooks for the sseService's methods.
+
+Depending on their nature, hooks are 
+
+ - either invoked downstream or upstream
+ - either synchronous or asynchronous 
+
+See below for a description of those terms.
+
+At the moment, three hooks are currently supported. Each of them is described below, along with an 'identity' implementation.
+
+```javascript
+sseService.use({
+  /**
+   * [Asynchronous - downstream]
+   * The connection has been accepted by the sseService but not registered yet.
+   * This lifecycle hook MUST NOT send any header/data to the response.
+   * <next> accepts an optional error as only argument.
+   */
+  beforeRegister: (sseService, req, res, next) => {
+    next();
+  },
+
+  /**
+   * [Asynchronous - upstream]
+   * The connection has been registered by the sseService and has been assigned an sseID. 
+   * Data can be sent down at this point.
+   * This middleware occurs right before the 'connection' event is emitted.
+   * <next> accepts an optional error as only argument.
+   */
+  afterRegister: (sseService, sseId, next) => {
+    next();
+  },
+
+  /**
+   * [Synchronous - downstream]
+   * Data is about to be sent to (potentially several) connection(s). 
+   * This hook gives the opportunity to implement message formatting logic.
+   */
+  transformSend: payload => {
+    return payload;
+  }
+});
+```
+
+**downstream vs upstream**
+
+`sseService.use({downStreamHook1}, {downStreamHook2})` invokes hook in the same order (hook1, then hook2)
+
+`sseService.use({upStreamHook1}, {upStreamHook2})` invokes hook in reverse order (hook2, then hook1)
+
+**synchronous vs asynchronous**
+
+Synchronous hooks are pure functions that return the exact same number of arguments they receive. On invocation, such hooks are composed together (as in `f(g(x))`).
+
+Asynchronous hooks receive a `next` function a last argument. This function MUST be called when the hook has finished its job, with possibly an error as only argument. On invocation, asynchronous hooks are composed together in a waterfall sequence. They do not pass data along to each other.
 
 # Support
 
