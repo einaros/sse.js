@@ -124,10 +124,11 @@ describe('SSEService', () => {
     it('should emit a \'connection\' event when connection is registered', _done => {
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
       const timeoutId = setTimeout(() => done(new Error(`Did not receive 'connection' event`)), 50).unref();
-      sseService.on('connection', sseId => {
+      sseService.on('connection', (sseId, _sseService) => {
         clearTimeout(timeoutId);
         try {
           assert.instanceOf(sseId, sseService.SSEID);
+          assert.equal(_sseService, sseService);
           done();
         } catch (e) {
           done(e);

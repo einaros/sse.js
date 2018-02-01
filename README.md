@@ -80,8 +80,11 @@ Event emitted when the client closed the connection
 ### Event: 'connection'
 
   - `sseId {SSEID}` - Connection's SSE identifier
+  - `sseService {SSEService}` - the emitter
 
-Event emitted when an SSE connection has been successfully established
+Event emitted when an SSE connection has been successfully established.
+
+The sseService is also provided to allow the event handler to be implemented in a separate module.
 
 ### Event: 'error'
 
@@ -123,28 +126,29 @@ The connection will be rejected if the `Accept` header in the `req` object is no
 This function accepts no callback, to avoid subsequent code to possibly sending data to the `res` object.
 Instead, the service will emit a 'connection' event with the `sseId` if the connection was successful. If not, it will emit an 'error' event.
 
-### `sseService.resetLastEventId([cb])`
+### `sseService.resetLastEventId([target[, cb]])`
 
+  - `target {SSEID | SSEID[] | function}` (optional) - The target connection(s). Defaults to `null` (targets all connections)
   - `cb {function}` (optional) - Callback function
 
 Resets the Last-Event-ID to the client
 
-### `sseService.send(opts[, target[, cb]])`
+### `sseService.send(payload[, target[, cb]])`
 
-  - `opts {Object}`
-  - `opts.data {*}` (optional) - Defaults to the empty string
-  - `opts.event {string}` (optional) - If falsy, no `event` field will be sent
-  - `opts.id {string}` (optional) - If falsy, no `id` field will be sent
-  - `opts.retry {number}` (optional) - If falsy, no `retry` field will be sent
-  - `opts.comment {string}` (optional) - If falsy, no comment will be sent
-  - `target {SSEID | function}` (optional) - The target connection(s). Defaults to `null` (targets all connections)
+  - `payload {Object}`
+  - `payload.data {*}` (optional) - Defaults to the empty string
+  - `payload.event {string}` (optional) - If falsy, no `event` field will be sent
+  - `payload.id {string}` (optional) - If falsy, no `id` field will be sent
+  - `payload.retry {number}` (optional) - If falsy, no `retry` field will be sent
+  - `payload.comment {string}` (optional) - If falsy, no comment will be sent
+  - `target {SSEID | SSEID[] | function}` (optional) - The target connection(s). Defaults to `null` (targets all connections)
   - `cb {function}` (optional) - Callback function
 
 General-purpose method for sending information to the client. Convenience methods may be added in the future to cover most common use cases.
 
 ### `sseService.unregister([target[, cb]])`
 
-  - `target {SSEID | function}` - The target connection(s). Defaults to `null` (targets all connections)
+  - `target {SSEID | SSEID[] | function}` (optional) - The target connection(s). Defaults to `null` (targets all connections)
   - `cb {function}` (optional) - Callback function
 
 This operation closes the response(s) object(s) matching the `target` argument and frees up resources. If no `target` argument is provided, all connections will be closed.
