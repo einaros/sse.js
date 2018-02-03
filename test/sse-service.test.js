@@ -178,8 +178,13 @@ describe('SSEService', () => {
       
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done, 'Did not receive any data');
       sseService.on('connection', sseId => {
-        sseService.send(opts, sseId, err => {
+        sseService.send(opts, sseId, (err, numTargetedConnections) => {
           if (err) done(err);
+          try {
+            assert.equal(numTargetedConnections, 1);
+          } catch(e) {
+            done(e);
+          }
         });
       });
       
@@ -201,8 +206,13 @@ describe('SSEService', () => {
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done, 'Did not receive any data');
       
       sseService.on('connection', sseId => {
-        sseService.resetEventId(sseId, err => {
+        sseService.resetEventId(sseId, (err, numTargetedConnections) => {
           if (err) done(err);
+          try {
+            assert.equal(numTargetedConnections, 1);
+          } catch(e) {
+            done(e);
+          }
         });
       });
       
