@@ -1,30 +1,37 @@
 {
-  "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
   "name": "sse",
-  "version": "0.0.8",
-  "keywords": [
-    "real-time",
-    "server-sent-events",
-    "html5",
-    "sse",
-    "messaging"
-  ],
+  "version": "1.0.0-rc0",
+  "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git://github.com/einaros/sse.js.git"
   },
-  "engines": {
-    "node": ">=0.4.0"
-  },
+  "main": "index.js",
   "scripts": {
-    "test": "node_modules/.bin/mocha"
+    "lint": "npm run prettier",
+    "prettier": "prettier --single-quote --write \"lib/**/*.js\"",
+    "test": "node_modules/.bin/mocha test/**/*.test.js",
+    "test-coverage": "nyc mocha --timeout=3000 test/**/*.test.js && nyc report --reporter=html"
   },
   "dependencies": {
-    "options": "0.0.6"
+    "async": "^2.6.0",
+    "uuid": "^3.1.0"
   },
   "devDependencies": {
-    "mocha": "4.0.1",
-    "expect.js": "0.3.1"
+    "async": "^2.6.0",
+    "chai": "^4.1.2",
+    "express": "^4.16.2",
+    "mocha": "^4.0.1",
+    "nyc": "^11.3.0",
+    "prettier": "1.9.2"
   },
-  "optionalDependencies": {}
+  "keywords": [
+    "real-time",
+    "server-sent-events",
+    "sse"
+  ],
+  "engines": {
+    "node": ">=6.0.0"
+  }
 }
