@@ -11,7 +11,7 @@ const {verifyResponseStatusCodeAndHeaders, assertHeartbeat} = require('./utils/a
 const {getRandomInt, shortcutSetInterval, restoreSetInterval} = require('./utils');
 const {execWithLockOnResource, releaseLock} = require('./utils/lock');
 
-describe('SSEService', () => {
+describe('SSEService (integration tests)', () => {
   /** @type {SSEServer} */
   let sseServer = null;
   
@@ -35,8 +35,11 @@ describe('SSEService', () => {
   
   describe('register/unregister', () => {
     
-    it('should refuse connections that do not have the required HTTP request headers', _done => {
-      const {done} = setupSSEServiceForServer(sseServer, _done);
+    it('should refuse to register connections that do not have the required HTTP request headers', _done => {
+      const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+      sseService.on('connection', sseId => {
+        done(new Error('The \'connection\' event should not be fired'))
+      });
       simulateSSEConnection(sseServer, {accept: 'application/json'}, (err, requestId) => {
         if(err) return done(err);
         try {
@@ -45,6 +48,37 @@ describe('SSEService', () => {
         } catch (e) {
           done(e);
         }
+      });
+    });
+    
+    it('should refuse to register connections with headers already sent to the response', _done => {
+      // Creating a flawed SSEServer
+      sseServer.close(err => {
+        if(err) return _done(err);
+        createSSEServer(port, true, (err, _sseServer) => {
+          if (err) return _done(err);
+          sseServer = _sseServer;
+          
+          const {sseService, done} = setupSSEServiceForServer(sseServer, _done, false);
+          sseService.on('connection', sseId => {
+            done(new Error('The \'connection\' event should not be fired'))
+          });
+          
+          sseService.on('error', () => {
+            done();
+          });
+  
+          simulateSSEConnection(sseServer, (err, requestId) => {
+            if(err) return done(err);
+            try {
+              assert.equal(sseServer.getClientResponse(requestId).statusCode, 500);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          });
+          
+        });
       });
     });
     
@@ -182,7 +216,7 @@ describe('SSEService', () => {
     it('should send data to a single connection (id, event, data, retry, comment)', _done => {
       const id = '2347', event = 'connection', data = {hello: 'world'}, retry = 100, comment = 'hey, there !';
       const opts = {id, event, data, retry, comment};
-      const expectedPayload = `id:${id}\nevent:${event}\ndata:${JSON.stringify(data)}\nretry:${retry}\n:${comment}\n\n`;
+      const expectedPayload = `id:${id}\nevent:${event}\nretry:${retry}\n:${comment}\ndata:${JSON.stringify(data)}\n\n`;
       
       const {sseService, done} = setupSSEServiceForServer(sseServer, _done, 'Did not receive any data');
       sseService.on('connection', sseId => {
@@ -209,6 +243,34 @@ describe('SSEService', () => {
         });
       });
       
+    });
+  
+    it('should send data to a single connection (plain text)', _done => {
+      const {sseService, done} = setupSSEServiceForServer(sseServer, _done, 'Did not receive any data');
+      sseService.on('connection', sseId => {
+        sseService.send('data:Hello World!\n\n', sseId, (err, numTargetedConnections) => {
+          if (err) done(err);
+          try {
+            assert.equal(numTargetedConnections, 1);
+          } catch (e) {
+            done(e);
+          }
+        });
+      });
+    
+      let heartBeatCounter = 0;
+      simulateSSEConnection(sseServer, (err, requestId) => {
+        if(err) return done(err);
+        sseServer.getClientResponse(requestId).on('data', chunk => {
+          if (heartBeatCounter === 0) {
+            heartBeatCounter++;
+          } else {
+            assert.equal(chunk.toString(), 'data:Hello World!\n\n', `Unexpected payload of data received`);
+            done();
+          }
+        });
+      });
+    
     });
     
     it('should reset the lastEventID to the client', _done => {
@@ -366,14 +428,14 @@ describe('SSEService', () => {
               counter++;
             } else if (counter === 1) {
               try {
-                assert.equal(chunk.toString(), 'data:"Take this!"\n\n', `Unexpected payload of data received`);
+                assert.equal(chunk.toString(), 'data:Take this!\n\n', `Unexpected payload of data received`);
                 counter++;
               } catch (e) {
                 done(e);
               }
             } else {
               try {
-                assert.equal(chunk.toString(), 'data:"And this!"\n\n', `Unexpected payload of data received`);
+                assert.equal(chunk.toString(), 'data:And this!\n\n', `Unexpected payload of data received`);
                 done();
               } catch (e) {
                 done(e);
@@ -566,7 +628,7 @@ describe('SSEService', () => {
               heartBeatCounter++;
             } else {
               try {
-                assert.equal(chunk.toString(), 'data:"Hey there!"\n\n', `Unexpected payload of data received`);
+                assert.equal(chunk.toString(), 'data:Hey there!\n\n', `Unexpected payload of data received`);
                 done();
               } catch (e) {
                 done(e);

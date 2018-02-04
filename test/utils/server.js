@@ -4,9 +4,15 @@ const SSEConnectionDescription = require('../types/sse-connection-description');
 
 /**
  * @param {number} port
- * @param {sseServerCb} cb
+ * @param {boolean | sseServerCb} sendHeadersToResponseBeforeRegister
+ * @param {sseServerCb} [cb]
  */
-exports.createSSEServer = function createSSEServer(port, cb) {
+exports.createSSEServer = function createSSEServer(port, sendHeadersToResponseBeforeRegister, cb) {
+  if (typeof sendHeadersToResponseBeforeRegister === 'function') {
+    cb = sendHeadersToResponseBeforeRegister;
+    sendHeadersToResponseBeforeRegister = false;
+  }
+  
   let httpServer = null;
   let sseServer = null;
   
@@ -19,17 +25,19 @@ exports.createSSEServer = function createSSEServer(port, cb) {
   function requestListener(request, response) {
     const requestId = /^\/(\d+)$/.exec(request.url)[1];
     sseServer.sseConnections[requestId] = new SSEConnectionDescription(response);
-    sseServer.sseService.register(request, response);
-    sseServer.sseService.on('error', err => {
-      throw err;
-    })
+    if (!sendHeadersToResponseBeforeRegister) {
+      return sseServer.sseService.register(request, response);
+    }
+    response.write('data', err => {
+      if (err) return cb(err);
+      sseServer.sseService.register(request, response);
+    });
   }
   
   httpServer = http
     .createServer(requestListener)
     .listen(port, onHttpServerListening);
 };
-
 
 /**
  * @callback sseServerCb
