@@ -38,6 +38,7 @@ describe('SSEService', () => {
     it('should refuse connections that do not have the required HTTP request headers', _done => {
       const {done} = setupSSEServiceForServer(sseServer, _done);
       simulateSSEConnection(sseServer, {accept: 'application/json'}, (err, requestId) => {
+        if(err) return done(err);
         try {
           assert.equal(sseServer.getClientResponse(requestId).statusCode, 400);
           done();
@@ -91,7 +92,9 @@ describe('SSEService', () => {
           done(e);
         }
       });
-      simulateSSEConnection(sseServer);
+      simulateSSEConnection(sseServer, err => {
+        if(err) done(err);
+      });
     });
     
     it('should indicate if a connection is active', _done => {
@@ -113,7 +116,9 @@ describe('SSEService', () => {
           done(e);
         }
       });
-      simulateSSEConnection(sseServer);
+      simulateSSEConnection(sseServer, err => {
+        if(err) done(err);
+      });
     });
   });
   
@@ -130,7 +135,9 @@ describe('SSEService', () => {
           done(e);
         }
       });
-      simulateSSEConnection(sseServer);
+      simulateSSEConnection(sseServer, err => {
+        if(err) done(err);
+      });
     });
     
     it('should emit a \'clientClose\' event upon client close', _done => {
@@ -158,6 +165,7 @@ describe('SSEService', () => {
       });
       
       simulateSSEConnection(sseServer, (err, requestId) => {
+        if(err) return done(err);
         try {
           assert.equal(sseService.numActiveConnections, 1);
         } catch (e) {
@@ -182,7 +190,7 @@ describe('SSEService', () => {
           if (err) done(err);
           try {
             assert.equal(numTargetedConnections, 1);
-          } catch(e) {
+          } catch (e) {
             done(e);
           }
         });
@@ -190,6 +198,7 @@ describe('SSEService', () => {
       
       let heartBeatCounter = 0;
       simulateSSEConnection(sseServer, (err, requestId) => {
+        if(err) return done(err);
         sseServer.getClientResponse(requestId).on('data', chunk => {
           if (heartBeatCounter === 0) {
             heartBeatCounter++;
@@ -210,7 +219,7 @@ describe('SSEService', () => {
           if (err) done(err);
           try {
             assert.equal(numTargetedConnections, 1);
-          } catch(e) {
+          } catch (e) {
             done(e);
           }
         });
@@ -249,7 +258,9 @@ describe('SSEService', () => {
           done();
         }
       });
-      simulateSSEConnection(sseServer);
+      simulateSSEConnection(sseServer, err => {
+        if(err) done(err);
+      });
     });
     
     it('should contain the last-event-id, if any', _done => {
@@ -263,7 +274,9 @@ describe('SSEService', () => {
           done(e);
         }
       });
-      simulateSSEConnection(sseServer, {'last-event-id': lastEventId});
+      simulateSSEConnection(sseServer, {'last-event-id': lastEventId}, err => {
+        if(err) done(err);
+      });
     });
     
     it('should contain a reference to the res.locals object', _done => {
@@ -276,7 +289,9 @@ describe('SSEService', () => {
           done(e);
         }
       });
-      simulateSSEConnection(sseServer);
+      simulateSSEConnection(sseServer, err => {
+        if(err) done(err);
+      });
     });
     
   });
@@ -300,7 +315,9 @@ describe('SSEService', () => {
             }
           }
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
       it('should be called before the \'connection\' event', _done => {
@@ -322,7 +339,9 @@ describe('SSEService', () => {
           else
             done();
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
       it('should be called upstream in the lifecycle sequence', _done => {
@@ -341,6 +360,7 @@ describe('SSEService', () => {
         );
         let counter = 0;
         simulateSSEConnection(sseServer, (err, requestId) => {
+          if(err) return done(err);
           sseServer.getClientResponse(requestId).on('data', chunk => {
             if (counter === 0) {
               counter++;
@@ -376,7 +396,9 @@ describe('SSEService', () => {
         sseService.on('connection', sseId => {
           done(new Error('The \'connection\' event should not be fired'))
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
     });
@@ -399,7 +421,9 @@ describe('SSEService', () => {
             }
           }
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
       it('should be called after request validation', _done => {
@@ -410,6 +434,7 @@ describe('SSEService', () => {
           }
         });
         simulateSSEConnection(sseServer, {accept: 'application/json'}, (err, requestId) => {
+          if(err) return done(err);
           const clientResponse = sseServer.getClientResponse(requestId);
           clientResponse.on('data', chunk => {
             try {
@@ -434,7 +459,9 @@ describe('SSEService', () => {
             }
           }
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
       it('should be called downstream in the lifecycle sequence', _done => {
@@ -455,13 +482,15 @@ describe('SSEService', () => {
         );
         sseService.on('connection', sseId => {
           try {
-            assert.equal(sseId.lastEventId, 'No, I am the Last-Event-ID!')
+            assert.equal(sseId.lastEventId, 'No, I am the Last-Event-ID!');
             done();
           } catch (e) {
             done(e);
           }
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
       it('should emit errors', _done => {
@@ -477,7 +506,9 @@ describe('SSEService', () => {
         sseService.on('connection', sseId => {
           done(new Error('The \'connection\' event should not be fired'))
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
     });
@@ -487,9 +518,10 @@ describe('SSEService', () => {
       it('should be called with the correct parameters (payload)', _done => {
         const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
         sseService.use({
+          // cannot be an arrow function !
           transformSend: function (payload) {
             try {
-              assert(arguments.length === 1);
+              assert.equal(arguments.length, 1);
               done();
             } catch (e) {
               done(e);
@@ -499,7 +531,9 @@ describe('SSEService', () => {
         sseService.on('connection', sseId => {
           sseService.send({comment: ''}, sseId);
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
       it('should be called downstream in the lifecycle sequence', _done => {
@@ -507,31 +541,32 @@ describe('SSEService', () => {
         sseService.use(
           {
             transformSend: payload => (
-              payload.data
-                ? Object.assign({}, payload, {data: 'Hey ' + payload.data})
+              typeof payload.data === 'string'
+                ? Object.assign({}, payload, {data: payload.data + 'Hey '})
                 : payload
             )
           },
           {
             transformSend: payload => (
-              payload.data
-                ? Object.assign({}, payload, {data: 'there! ' + payload.data})
+              typeof payload.data === 'string'
+                ? Object.assign({}, payload, {data: payload.data + 'there!'})
                 : payload
             )
           }
         );
         sseService.on('connection', sseId => {
-          sseService.send({data: 'Welcome!'}, sseId);
+          sseService.send({data: ''}, sseId);
         });
         
         let heartBeatCounter = 0;
         simulateSSEConnection(sseServer, (err, requestId) => {
+          if(err) return done(err);
           sseServer.getClientResponse(requestId).on('data', chunk => {
             if (heartBeatCounter === 0) {
               heartBeatCounter++;
             } else {
               try {
-                assert.equal(chunk.toString(), 'data:"Hey there! Welcome!"\n\n', `Unexpected payload of data received`);
+                assert.equal(chunk.toString(), 'data:"Hey there!"\n\n', `Unexpected payload of data received`);
                 done();
               } catch (e) {
                 done(e);
@@ -544,7 +579,7 @@ describe('SSEService', () => {
       it('should pass errors to sseService.send\'s callback', _done => {
         const {sseService, done} = setupSSEServiceForServer(sseServer, _done, false, 'Did not receive the error');
         sseService.use({
-          transformSend: (payload) => {
+          transformSend: payload => {
             throw new Error('Formatting error');
           }
         });
@@ -554,7 +589,67 @@ describe('SSEService', () => {
             else done(new Error('Expected error to be passed to send\'s callback'));
           })
         });
-        simulateSSEConnection(sseServer);
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
+      });
+      
+    });
+    
+    describe('transformResponseHeaders (sync)', () => {
+      
+      it('should be called with the correct parameters (headers)', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done, 'did not reach middleware');
+        sseService.use({
+          transformResponseHeaders: function(headers) {
+            try {
+              assert.equal(arguments.length, 1);
+              assert.isObject(headers);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          }
+        });
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
+      });
+      
+      it('should be called downstream in the lifecycle sequence', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done);
+        sseService.use(
+          {
+            transformResponseHeaders: headers => Object.assign({}, headers, {'Access-Control-Allow-Origin': '*'})
+          },
+          {
+            transformResponseHeaders: headers => Object.assign({}, headers, {'Access-Control-Allow-Origin': 'https://www.npmjs.com'})
+          }
+        );
+        
+        simulateSSEConnection(sseServer, (err, requestId) => {
+          if(err) return done(err);
+          assert.equal(sseServer.getClientResponse(requestId).headers['access-control-allow-origin'], 'https://www.npmjs.com');
+          done();
+        });
+      });
+      
+      it('should emit an error event in case of error', _done => {
+        const {sseService, done} = setupSSEServiceForServer(sseServer, _done, false, `Did not receive 'error' event`);
+        sseService.use({
+          transformResponseHeaders: headers => {
+            throw new Error('Some error');
+          }
+        });
+        sseService.on('error', err => {
+          done();
+        });
+        sseService.on('connection', sseId => {
+          done(new Error('The \'connection\' event should not be fired'))
+        });
+        simulateSSEConnection(sseServer, err => {
+          if(err) done(err);
+        });
       });
       
     });
@@ -579,6 +674,7 @@ describe('SSEService', () => {
       let heartBeatCounter = 0;
       
       simulateSSEConnection(sseServer, (err, requestId) => {
+        if(err) return done(err);
         sseServer.getClientResponse(requestId).on('data', chunk => {
           const diff = process.hrtime(time);
           const timeInNanoSeconds = diff[0] * 1e9 + diff[1];

@@ -200,6 +200,16 @@ sseService.use({
 
   /**
    * [Synchronous - downstream]
+   * Status code and headers are about to be sent to a response.
+   * This hook gives the opportunity to tweak response headers.
+   * Response headers from the EventSource spec may be overwritten.
+   */
+  transformResponseHeaders: headers => {
+    return headers;
+  },
+
+  /**
+   * [Synchronous - downstream]
    * Data is about to be sent to (potentially several) connection(s). 
    * This hook gives the opportunity to implement message formatting logic.
    */
@@ -217,7 +227,7 @@ sseService.use({
 
 **synchronous vs asynchronous**
 
-Synchronous hooks are pure functions that return the exact same number of arguments they receive. On invocation, such hooks are composed together (as in `f(g(x))`).
+Synchronous hooks are pure functions that return the exact same number of arguments they receive. On invocation, such hooks are composed together (as in `f(g(x))`). Synchronous hooks are always invoked downstream.
 
 Asynchronous hooks receive a `next` function as last argument. This function MUST be called when the hook has finished its job, with possibly an error as only argument. On invocation, asynchronous hooks are composed together in a waterfall sequence. They do not pass data along to each other.
 
