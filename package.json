@@ -1,7 +1,7 @@
 {
   "author": "Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)",
-  "name": "sse",
-  "version": "0.0.8",
+  "name": "fastx-sse",
+  "version": "0.0.9",
   "keywords": [
     "real-time",
     "server-sent-events",
@@ -11,7 +11,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/einaros/sse.js.git"
+    "url": "git://github.com/cintolas/sse.js.git"
   },
   "engines": {
     "node": ">=0.4.0"
